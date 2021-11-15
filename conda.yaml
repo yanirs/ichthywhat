@@ -1,0 +1,9 @@
+name: deep-fish
+channels:
+  - fastchan
+dependencies:
+  - fastai=2.5
+  - jupyter=1.0
+  - python=3.9
+  - pip:
+    - mlflow>=1.21
