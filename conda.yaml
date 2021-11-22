@@ -6,4 +6,5 @@ dependencies:
   - jupyter=1.0
   - python=3.9
   - pip:
+    - defopt==6.1.0
     - mlflow>=1.21
