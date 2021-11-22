@@ -130,3 +130,6 @@ dmypy.json
 
 # JetBrains
 .idea/
+
+# Default data directory
+data/
