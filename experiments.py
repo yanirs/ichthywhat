@@ -63,18 +63,29 @@ def create_reproducible_learner(arch, dataset_path: Path, db_kwargs=None, dls_kw
     # See https://github.com/fastai/fastai/issues/2832#issuecomment-698759541
     set_seed(42, reproducible=True)
     dls = DataBlock(
-        blocks=(ImageBlock, CategoryBlock),
-        get_items=get_image_files,
-        splitter=RandomSplitter(valid_pct=0.2, seed=42),
-        get_y=lambda path: ' '.join(path.name.split('-')[:2]).capitalize(),
-        item_tfms=RandomResizedCrop(224, min_scale=0.5),
-        batch_tfms=aug_transforms(),
-        **(db_kwargs or {})
+        **{
+            **dict(
+                blocks=(ImageBlock, CategoryBlock),
+                get_items=get_image_files,
+                splitter=RandomSplitter(valid_pct=0.2, seed=42),
+                get_y=lambda path: ' '.join(path.name.split('-')[:2]).capitalize(),
+                item_tfms=RandomResizedCrop(224, min_scale=0.5),
+                batch_tfms=aug_transforms()
+            ),
+            **(db_kwargs or {})
+        }
     ).dataloaders(dataset_path, **(dls_kwargs or {}))
-    return cnn_learner(dls,
-                       arch,
-                       **{**dict(metrics=[accuracy, top_3_accuracy], cbs=MLflowCallback()),
-                          **(learner_kwargs or {})})
+    return cnn_learner(
+        dls,
+        arch,
+        **{
+            **dict(
+                metrics=[accuracy, top_3_accuracy],
+                cbs=MLflowCallback()
+            ),
+            **(learner_kwargs or {})
+        }
+    )
 
 
 def _remove_cbs_of_types(learner: Learner, cb_types: list[type]) -> list[Callback]:
