@@ -14,6 +14,7 @@ def create_rls_genus_dataset(*, image_dir: Path, output_dir: Path, num_top_gener
     :param output_dir: Path of the output directory, which must not exist.
     :param num_top_genera: Number of top genera to include, where ranking is based on the number of images per genus.
     """
+    raise NotImplementedError("Need to handle duplicates as in create_rls_species_dataset()")
     genus_to_num_images = Counter()
     for image_path in image_dir.iterdir():
         genus = image_path.name.split("-", maxsplit=1)[0]
@@ -38,15 +39,26 @@ def create_rls_species_dataset(
     :param min_images_per_species: Only species with at least this number of images will be included.
     """
     species_with_min_images = set()
+    species_with_duplicates = set()
+    hash_to_image_path = {}
     for image_path in image_dir.iterdir():
         try:
             genus, taxon, suffix = image_path.name.split("-")
         except ValueError:
-            print(f"Skipping {image_path}")
+            print(f"Skipping {image_path.name} (bad name)")
             continue
+        image_hash = hash(image_path.read_bytes())
+        if image_hash in hash_to_image_path:
+            species_with_duplicates.add(" ".join(hash_to_image_path[image_hash].name.split("-")[:2]).capitalize())
+            species_with_duplicates.add(f"{genus.capitalize()} {taxon}")
+            print(f"Skipping {image_path.name} (duplicate of {hash_to_image_path[image_hash].name})")
+            continue
+        hash_to_image_path[image_hash] = image_path
         image_index = int(suffix.split(".")[0])
         if image_index >= min_images_per_species - 1:
             species_with_min_images.add(f"{genus.capitalize()} {taxon}")
+    print(f"Ignoring species with duplicates: {sorted(species_with_duplicates)}")
+    species_with_min_images.difference_update(species_with_duplicates)
     m1_species = pd.read_csv(m1_csv_path)["Taxon"].drop_duplicates()
     sampled_species = m1_species[m1_species.isin(species_with_min_images)]
     print(f"Found {len(sampled_species)} M1 species with at least {min_images_per_species} images")
