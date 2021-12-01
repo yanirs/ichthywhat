@@ -23,9 +23,9 @@ class MLflowCallback(Callback):
 
     def before_epoch(self):
         # If the recorder doesn't have a log yet, it's the initial run (before epoch 0).
-        # TODO: make this better -- it's actually the frozen iteration.
+        epoch = self.epoch if hasattr(self.recorder, "log") else 0
         mlflow.start_run(
-            run_name=self.run_name_prefix + (f"epoch {self.epoch}" if hasattr(self.recorder, "log") else "baseline"),
+            run_name=f'{self.run_name_prefix}{"frozen" if self.opt.frozen_idx else "unfrozen"} epoch {epoch}',
             nested=True,
         )
 
@@ -39,6 +39,11 @@ def top_3_accuracy(inp, targ):
     return top_k_accuracy(inp, targ, k=3)
 
 
+def top_10_accuracy(inp, targ):
+    """Delegate to top_k_accuarcy with k=10."""
+    return top_k_accuracy(inp, targ, k=10)
+
+
 def delete_run_with_children(parent_run_id: str):
     """Delete an MLflow run together with all its children."""
     client = mlflow.tracking.client.MlflowClient()
@@ -48,6 +53,11 @@ def delete_run_with_children(parent_run_id: str):
     ):
         client.delete_run(child_run.info.run_id)
     client.delete_run(parent_run_id)
+
+
+def get_species_from_path(path: Path) -> str:
+    """Get the species name from a path, assuming that the file is named `<genus>-<taxon>-.*`."""
+    return " ".join(path.name.split("-")[:2]).capitalize()
 
 
 def create_reproducible_learner(arch, dataset_path: Path, db_kwargs=None, dls_kwargs=None, learner_kwargs=None):
@@ -69,7 +79,7 @@ def create_reproducible_learner(arch, dataset_path: Path, db_kwargs=None, dls_kw
                 blocks=(ImageBlock, CategoryBlock),
                 get_items=get_image_files,
                 splitter=RandomSplitter(valid_pct=0.2, seed=42),
-                get_y=lambda path: " ".join(path.name.split("-")[:2]).capitalize(),
+                get_y=get_species_from_path,
                 item_tfms=RandomResizedCrop(224, min_scale=0.5),
                 batch_tfms=aug_transforms(),
             ),
@@ -77,7 +87,9 @@ def create_reproducible_learner(arch, dataset_path: Path, db_kwargs=None, dls_kw
         }
     ).dataloaders(dataset_path, **(dls_kwargs or {}))
     return cnn_learner(
-        dls, arch, **{**dict(metrics=[accuracy, top_3_accuracy], cbs=MLflowCallback()), **(learner_kwargs or {})}
+        dls,
+        arch,
+        **{**dict(metrics=[accuracy, top_3_accuracy, top_10_accuracy], cbs=MLflowCallback()), **(learner_kwargs or {})},
     )
 
 
@@ -98,7 +110,7 @@ def get_learner_metrics_with_tta(learner: Learner, tta_prefix: str = "", **tta_k
     :return: dict mapping metric names to their values, including TTA metrics
     """
     set_seed(13, reproducible=True)
-    metrics = dict(zip(learner.recorder.metric_names[1:-1], learner.recorder.log[1:-1]))
+    metric_values = dict(zip(learner.recorder.metric_names[1:-1], learner.recorder.log[1:-1]))
     with learner.no_bar(), learner.no_logging():
         # Keep the old log because of learner.tta() side effects
         old_log = learner.recorder.log
@@ -108,9 +120,9 @@ def get_learner_metrics_with_tta(learner: Learner, tta_prefix: str = "", **tta_k
         # Restore the log and callback
         learner.recorder.log = old_log
         learner.add_cbs(removed_cbs)
-    metrics[f"{tta_prefix}accuracy"] = accuracy(preds, targs).item()
-    metrics[f"{tta_prefix}top_3_accuracy"] = top_3_accuracy(preds, targs).item()
-    return metrics
+    for metric in learner.metrics:
+        metric_values[f"{tta_prefix}{metric.name}"] = metric.func(preds, targs).item()
+    return metric_values
 
 
 def run_lr_find_experiment(
