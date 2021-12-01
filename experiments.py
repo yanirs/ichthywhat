@@ -17,7 +17,7 @@ from fastai.vision.learner import cnn_learner
 class MLflowCallback(Callback):
     """A Learner callback that logs the metrics of each epoch to MLflow."""
 
-    def __init__(self, run_name_prefix='', **kwargs):
+    def __init__(self, run_name_prefix="", **kwargs):
         super().__init__(**kwargs)
         self.run_name_prefix = run_name_prefix
 
@@ -25,8 +25,8 @@ class MLflowCallback(Callback):
         # If the recorder doesn't have a log yet, it's the initial run (before epoch 0).
         # TODO: make this better -- it's actually the frozen iteration.
         mlflow.start_run(
-            run_name=self.run_name_prefix + (f'epoch {self.epoch}' if hasattr(self.recorder, 'log') else 'baseline'),
-            nested=True
+            run_name=self.run_name_prefix + (f"epoch {self.epoch}" if hasattr(self.recorder, "log") else "baseline"),
+            nested=True,
         )
 
     def after_epoch(self):
@@ -43,8 +43,9 @@ def delete_run_with_children(parent_run_id: str):
     """Delete an MLflow run together with all its children."""
     client = mlflow.tracking.client.MlflowClient()
     parent_run = client.get_run(parent_run_id)
-    for child_run in client.search_runs(experiment_ids=[parent_run.info.experiment_id],
-                                        filter_string=f"tags.`mlflow.parentRunId` = '{parent_run_id}'"):
+    for child_run in client.search_runs(
+        experiment_ids=[parent_run.info.experiment_id], filter_string=f"tags.`mlflow.parentRunId` = '{parent_run_id}'"
+    ):
         client.delete_run(child_run.info.run_id)
     client.delete_run(parent_run_id)
 
@@ -68,23 +69,15 @@ def create_reproducible_learner(arch, dataset_path: Path, db_kwargs=None, dls_kw
                 blocks=(ImageBlock, CategoryBlock),
                 get_items=get_image_files,
                 splitter=RandomSplitter(valid_pct=0.2, seed=42),
-                get_y=lambda path: ' '.join(path.name.split('-')[:2]).capitalize(),
+                get_y=lambda path: " ".join(path.name.split("-")[:2]).capitalize(),
                 item_tfms=RandomResizedCrop(224, min_scale=0.5),
-                batch_tfms=aug_transforms()
+                batch_tfms=aug_transforms(),
             ),
-            **(db_kwargs or {})
+            **(db_kwargs or {}),
         }
     ).dataloaders(dataset_path, **(dls_kwargs or {}))
     return cnn_learner(
-        dls,
-        arch,
-        **{
-            **dict(
-                metrics=[accuracy, top_3_accuracy],
-                cbs=MLflowCallback()
-            ),
-            **(learner_kwargs or {})
-        }
+        dls, arch, **{**dict(metrics=[accuracy, top_3_accuracy], cbs=MLflowCallback()), **(learner_kwargs or {})}
     )
 
 
@@ -94,7 +87,7 @@ def _remove_cbs_of_types(learner: Learner, cb_types: list[type]) -> list[Callbac
     return removed_cbs
 
 
-def get_learner_metrics_with_tta(learner: Learner, tta_prefix: str = '', **tta_kwargs) -> dict[str, float]:
+def get_learner_metrics_with_tta(learner: Learner, tta_prefix: str = "", **tta_kwargs) -> dict[str, float]:
     """
     Use test-time augmentation (TTA) to calculate the learner's metrics on the validation set.
 
@@ -115,17 +108,19 @@ def get_learner_metrics_with_tta(learner: Learner, tta_prefix: str = '', **tta_k
         # Restore the log and callback
         learner.recorder.log = old_log
         learner.add_cbs(removed_cbs)
-    metrics[f'{tta_prefix}accuracy'] = accuracy(preds, targs).item()
-    metrics[f'{tta_prefix}top_3_accuracy'] = top_3_accuracy(preds, targs).item()
+    metrics[f"{tta_prefix}accuracy"] = accuracy(preds, targs).item()
+    metrics[f"{tta_prefix}top_3_accuracy"] = top_3_accuracy(preds, targs).item()
     return metrics
 
 
-def run_lr_find_experiment(learner: Learner,
-                           num_epochs_between_finds: int,
-                           num_finds: int,
-                           suggestion_method: callable,
-                           show_plot: bool = False,
-                           disable_mlflow: bool = False):
+def run_lr_find_experiment(
+    learner: Learner,
+    num_epochs_between_finds: int,
+    num_finds: int,
+    suggestion_method: callable,
+    show_plot: bool = False,
+    disable_mlflow: bool = False,
+):
     """
     Run a learning rate finder experiment: Initial fine tuning, then a series of learning rate finds.
 
@@ -137,9 +132,9 @@ def run_lr_find_experiment(learner: Learner,
     :param disable_mlflow: If true, disable mlflow tracking by not adding back the MLflowCallback after each lr_find().
     """
     if not disable_mlflow:
-        mlflow.log_param('num_epochs_between_finds', num_epochs_between_finds)
-        mlflow.log_param('num_finds', num_finds)
-        mlflow.log_param('suggestion_method', suggestion_method.__name__)
+        mlflow.log_param("num_epochs_between_finds", num_epochs_between_finds)
+        mlflow.log_param("num_finds", num_finds)
+        mlflow.log_param("suggestion_method", suggestion_method.__name__)
 
     learner.fine_tune(num_epochs_between_finds)
     for i in range(num_finds):
@@ -150,10 +145,10 @@ def run_lr_find_experiment(learner: Learner,
 
         suggestions = learner.lr_find(suggest_funcs=[suggestion_method], show_plot=show_plot)
         next_lr = getattr(suggestions, suggestion_method.__name__)
-        print(f'Next learning rate: {next_lr:.6f}')
+        print(f"Next learning rate: {next_lr:.6f}")
 
         if not disable_mlflow:
-            learner.add_cb(MLflowCallback(run_name_prefix=f'after find {i} - '))
+            learner.add_cb(MLflowCallback(run_name_prefix=f"after find {i} - "))
         learner.add_cbs(removed_cbs)
 
         learner.fit_one_cycle(num_epochs_between_finds, next_lr)

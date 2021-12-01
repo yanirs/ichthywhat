@@ -6,10 +6,7 @@ import pandas as pd
 from PIL import Image
 
 
-def create_rls_genus_dataset(*,
-                             image_dir: Path,
-                             output_dir: Path,
-                             num_top_genera: int):
+def create_rls_genus_dataset(*, image_dir: Path, output_dir: Path, num_top_genera: int):
     """
     Create a dataset of the top genera from an RLS image directory. Images are cropped to remove the RLS URL.
 
@@ -19,21 +16,18 @@ def create_rls_genus_dataset(*,
     """
     genus_to_num_images = Counter()
     for image_path in image_dir.iterdir():
-        genus = image_path.name.split('-', maxsplit=1)[0]
+        genus = image_path.name.split("-", maxsplit=1)[0]
         genus_to_num_images[genus] += 1
     output_dir.mkdir(parents=True)
-    print(f'Found {len(genus_to_num_images)} genera. Copying top {num_top_genera} to {output_dir}')
+    print(f"Found {len(genus_to_num_images)} genera. Copying top {num_top_genera} to {output_dir}")
     for genus, _ in genus_to_num_images.most_common(num_top_genera):
-        for src_filename in image_dir.glob(f'{genus}-*'):
+        for src_filename in image_dir.glob(f"{genus}-*"):
             _crop_image_file(src_filename, output_dir / src_filename.name)
 
 
-def create_rls_species_dataset(*,
-                               m1_csv_path: Path,
-                               image_dir: Path,
-                               output_dir: Path,
-                               num_species: int = None,
-                               min_images_per_species: int = 1):
+def create_rls_species_dataset(
+    *, m1_csv_path: Path, image_dir: Path, output_dir: Path, num_species: int = None, min_images_per_species: int = 1
+):
     """
     Create a dataset directory from an RLS image directory. Images are cropped to remove the RLS URL.
 
@@ -46,21 +40,21 @@ def create_rls_species_dataset(*,
     species_with_min_images = set()
     for image_path in image_dir.iterdir():
         try:
-            genus, taxon, suffix = image_path.name.split('-')
+            genus, taxon, suffix = image_path.name.split("-")
         except ValueError:
-            print(f'Skipping {image_path}')
+            print(f"Skipping {image_path}")
             continue
-        image_index = int(suffix.split('.')[0])
+        image_index = int(suffix.split(".")[0])
         if image_index >= min_images_per_species - 1:
             species_with_min_images.add(f"{genus.capitalize()} {taxon}")
-    m1_species = pd.read_csv(m1_csv_path)['Taxon'].drop_duplicates()
+    m1_species = pd.read_csv(m1_csv_path)["Taxon"].drop_duplicates()
     sampled_species = m1_species[m1_species.isin(species_with_min_images)]
-    print(f'Found {len(sampled_species)} M1 species with at least {min_images_per_species} images')
+    print(f"Found {len(sampled_species)} M1 species with at least {min_images_per_species} images")
     if num_species:
         sampled_species = sampled_species.sample(num_species, random_state=0)
     output_dir.mkdir(parents=True)
-    print(f'Copying images for {len(sampled_species)} species to {output_dir}')
-    for image_glob in sampled_species.str.replace(' ', '-').str.lower() + '-*':
+    print(f"Copying images for {len(sampled_species)} species to {output_dir}")
+    for image_glob in sampled_species.str.replace(" ", "-").str.lower() + "-*":
         for src_filename in image_dir.glob(image_glob):
             _crop_image_file(src_filename, output_dir / src_filename.name)
 
@@ -72,9 +66,7 @@ def _crop_image_file(src: Path, dst: Path, top_bottom_pixels=55):
         im.crop((0, top_bottom_pixels, width, height - top_bottom_pixels)).save(dst)
 
 
-def create_test_dataset(*,
-                        trip_dir: Path,
-                        output_dir: Path):
+def create_test_dataset(*, trip_dir: Path, output_dir: Path):
     """
     Create a test dataset from a trip directory, which is traversed recursively.
 
@@ -86,21 +78,23 @@ def create_test_dataset(*,
     """
     output_dir.mkdir(parents=True)
     src_to_dst = {}
-    for child_path in trip_dir.glob('**/* - *.[Jj][Pp][Gg]'):
-        img_id, raw_species = child_path.name[:-4].split(' - ', maxsplit=1)
+    for child_path in trip_dir.glob("**/* - *.[Jj][Pp][Gg]"):
+        img_id, raw_species = child_path.name[:-4].split(" - ", maxsplit=1)
         species_to_keep = []
-        for name in raw_species.lower().split(' and '):
+        for name in raw_species.lower().split(" and "):
             try:
-                genus, taxon = name.split(' ')
+                genus, taxon = name.split(" ")
             except ValueError:
                 continue
-            if '[' in name or '(' in name or taxon == 'todo' or taxon == 'sp':
+            if "[" in name or "(" in name or taxon == "todo" or taxon == "sp":
                 continue
-            species_to_keep.append(f'{genus}-{taxon}')
+            species_to_keep.append(f"{genus}-{taxon}")
         dst = f"{img_id}-{'-AND-'.join(species_to_keep)}.jpg" if species_to_keep else None
         if dst:
             shutil.copy(child_path, output_dir / dst)
         src_to_dst[child_path] = dst
-    pd.Series(src_to_dst).to_csv(output_dir / 'src_to_dst.csv', header=False)
-    print(f"Copied {len(set(filter(None, src_to_dst.values())))} images. "
-          f"See {output_dir / 'src_to_dst.csv'} for details")
+    pd.Series(src_to_dst).to_csv(output_dir / "src_to_dst.csv", header=False)
+    print(
+        f"Copied {len(set(filter(None, src_to_dst.values())))} images. "
+        f"See {output_dir / 'src_to_dst.csv'} for details"
+    )
