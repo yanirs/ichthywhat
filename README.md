@@ -1,6 +1,16 @@
 # deep-fish
 Experimenting with deep learning for fish ID.
 
+## Setup
+
+Create the Conda environment:
+
+    $ conda env create
+
+Install pre-commit hooks:
+
+    $ pre-commit install
+
 ## Command line interface
 
 Create an RLS species dataset:
