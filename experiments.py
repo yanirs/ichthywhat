@@ -12,6 +12,8 @@ from fastai.torch_core import set_seed
 from fastai.vision.augment import aug_transforms, RandomResizedCrop
 from fastai.vision.data import ImageBlock
 from fastai.vision.learner import cnn_learner
+from fastcore.basics import range_of
+from fastcore.foundation import L as fastcore_list
 
 
 class MLflowCallback(Callback):
@@ -58,6 +60,11 @@ def delete_run_with_children(parent_run_id: str):
 def get_species_from_path(path: Path) -> str:
     """Get the species name from a path, assuming that the file is named `<genus>-<taxon>-.*`."""
     return " ".join(path.name.split("-")[:2]).capitalize()
+
+
+def no_validation_splitter(items):
+    """A DataBlock splitter that uses all the data for training. See notebooks/03-app.ipynb for a usage example."""
+    return fastcore_list(range_of(items)), fastcore_list([])
 
 
 def create_reproducible_learner(arch, dataset_path: Path, db_kwargs=None, dls_kwargs=None, learner_kwargs=None):
