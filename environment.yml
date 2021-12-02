@@ -8,5 +8,8 @@ dependencies:
   - pip:
     - black[jupyter]==21.11b1
     - defopt==6.1.0
+    - geopy==2.2.0
     - mlflow==1.21.0
     - pre-commit==2.16.0
+    - streamlit==1.2.0
+    - streamlit-cropper==0.1.3

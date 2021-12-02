@@ -11,6 +11,26 @@ Install pre-commit hooks:
 
     $ pre-commit install
 
+## Jupyter notebooks
+
+Run with `PYTHONPATH` to access functionality from the root Python files.
+
+    $ PYTHONPATH=~/projects/deep-fish jupyter notebook
+
+## Fish ID app
+
+Run via streamlit:
+
+    $ streamlit run --server.runOnSave true app.py
+
+Build a new model by running the code in `notebooks/03-app.ipynb`.
+
+## Experiment monitoring
+
+Use MLflow:
+
+    $ mlflow ui --backend-store-uri sqlite:///mlruns.db
+
 ## Command line interface
 
 Create an RLS species dataset:
