@@ -19,9 +19,13 @@ Run with `PYTHONPATH` to access functionality from the root Python files.
 
 ## Fish ID app
 
-Run via streamlit:
+Run via streamlit in local development mode (run on save and use local species images):
 
-    $ streamlit run --server.runOnSave true app.py
+    $ streamlit run --server.runOnSave true app.py -- local_species
+
+Run via streamlit in production mode:
+
+    $ streamlit run app.py
 
 Build a new model by running the code in `notebooks/03-app.ipynb`.
 

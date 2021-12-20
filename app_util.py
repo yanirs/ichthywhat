@@ -2,32 +2,29 @@
 
 from collections import defaultdict
 import typing
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+from fastai.learner import load_learner
 from geopy.distance import geodesic
 
 
-@st.experimental_memo
-def load_species_df(path_or_url: str, image_root: typing.Optional[str] = None) -> pd.DataFrame:
+def _load_species_df(path_or_url: typing.Union[str, Path]) -> pd.DataFrame:
     """
     Load the species DataFrame from the JSON used for other RLS tools (Frequency Explorer & Flashcards).
 
     :param path_or_url: local path or URL of the JSON.
-    :param image_root: optional path to the root directory of the species images, which will be prepended to each image.
 
     :return: the species DataFrame.
     """
     species_df = pd.read_json(path_or_url, orient="index")
     species_df.columns = ["name", "common_names", "url", "method", "images"]
     species_df["method"] = species_df["method"].map({0: "M1", 1: "M2", 2: "Both"})
-    if image_root:
-        species_df["images"] = species_df["images"].map(lambda images: [image_root + image for image in images])
     return species_df
 
 
-@st.experimental_memo
-def load_site_df(path_or_url: str, species_df: pd.DataFrame) -> pd.DataFrame:
+def _load_site_df(path_or_url: typing.Union[str, Path], species_df: pd.DataFrame) -> pd.DataFrame:
     """
     Load the site DataFrame from the JSON used for other RLS tools (Frequency Explorer & Flashcards).
 
@@ -71,3 +68,19 @@ def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius
         for species_name, species_count in area_site_info["species_counts"].items():
             area_species_freqs[species_name] += species_count / num_area_surveys
     return dict(filtered_site_df=area_site_df, num_surveys=num_area_surveys, species_freqs=area_species_freqs)
+
+
+@st.experimental_memo
+def load_resources(resources_path=Path(__file__).parent / "resources", local_species=False) -> tuple:
+    """
+    Load and cache all the static resources used by the streamlit app.
+
+    :param resources_path: path of the resource directory.
+    :param local_species: if True, append `/local` when loading the species DataFrame.
+
+    :return: a tuple of three items: the species DataFrame, the site DataFrame, and the prediction model.
+    """
+    species_df = _load_species_df((resources_path / "local" if local_species else resources_path) / "api-species.json")
+    site_df = _load_site_df(resources_path / "api-site-surveys.json", species_df)
+    model = load_learner(resources_path / "model.pkl")
+    return species_df, site_df, model

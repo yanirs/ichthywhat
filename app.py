@@ -1,23 +1,17 @@
 """Streamlit fish ID app."""
+import sys
 
-from fastai.learner import load_learner
 from fastai.vision.core import PILImage
 import streamlit as st
 from streamlit_cropper import st_cropper
 import pandas as pd
 
-from app_util import load_species_df, load_site_df, get_selected_area_info
+from app_util import get_selected_area_info, load_resources
 
 ########################
 # Load data and models #
 ########################
-# TODO: eliminate all the hardcoded paths when deploying (commit JSONs to this repo?)
-species_df = load_species_df(
-    "/home/yanir/projects/yanirs.github.io/tools/rls/api-species.json",
-    image_root="/home/yanir/projects/yanirs.github.io/",
-)
-site_df = load_site_df("/home/yanir/projects/yanirs.github.io/tools/rls/api-site-surveys.json", species_df)
-model = load_learner("/home/yanir/projects/deep-fish/model.pkl")
+species_df, site_df, model = load_resources(local_species=len(sys.argv) > 1 and sys.argv[1] == "local_species")
 
 ########################################
 # Show instructions and collect inputs #
@@ -124,6 +118,7 @@ for file_index, uploaded_file in enumerate(uploaded_files):
     st.caption("\n".join(score_explanation))
 
     # TODO: use TTA? what's the cost?
+    # TODO: cache predictions and support changing the number of returned results
     predictions = pd.Series(model.predict(PILImage(cropped_img))[2], index=model.dls.vocab, name="prediction")
     if show_only_area_species:
         predictions = (
