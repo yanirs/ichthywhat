@@ -133,3 +133,6 @@ dmypy.json
 
 # Default data directory
 data/
+
+# Resources for local development
+resources/local/
