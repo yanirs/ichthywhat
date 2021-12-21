@@ -28,7 +28,7 @@ st.caption(
     "RLS site or enter coordinates manually."
 )
 selected_site = st.selectbox(
-    "RLS site", ["None: Enter coordinates manually"] + site_df.index.str.cat(site_df.name, ": ").tolist()
+    "RLS site", ["None: Enter coordinates manually"] + site_df.index.str.cat(site_df["name"], ": ").tolist()
 )
 selected_site_id = selected_site.split(":")[0]
 selected_site_info = site_df.loc[selected_site_id] if selected_site_id in site_df.index else pd.DataFrame()

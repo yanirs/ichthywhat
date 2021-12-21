@@ -45,7 +45,7 @@ def _load_site_df(path_or_url: typing.Union[str, Path], species_df: pd.DataFrame
     return site_df
 
 
-@st.experimental_memo
+@st.experimental_memo(max_entries=5)
 def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius: float) -> dict:
     """
     Get information about the selected area.
@@ -70,7 +70,7 @@ def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius
     return dict(filtered_site_df=area_site_df, num_surveys=num_area_surveys, species_freqs=area_species_freqs)
 
 
-@st.experimental_memo
+@st.experimental_singleton
 def load_resources(resources_path=Path(__file__).parent / "resources", local_species=False) -> tuple:
     """
     Load and cache all the static resources used by the streamlit app.
