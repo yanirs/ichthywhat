@@ -22,9 +22,10 @@ st.title("_Ichthy-what?_ Fishy photo ID :fish:")
 st.caption("**Required**: Upload fishy photos to label (cephalopods and other swimmers may work too).")
 uploaded_files = st.file_uploader("Choose image files", accept_multiple_files=True)
 
+st.markdown("---")
 st.caption(
-    "**Optional**: Specify where the photos were taken to get occurrence frequencies. You can choose an "
-    "existing RLS site or enter coordinates manually."
+    "**Recommended**: Specify where the photos were taken to get occurrence frequencies. You can choose an existing "
+    "RLS site or enter coordinates manually."
 )
 selected_site = st.selectbox(
     "RLS site", ["None: Enter coordinates manually"] + site_df.index.str.cat(site_df.name, ": ").tolist()
@@ -70,23 +71,30 @@ with st.expander("Location details"):
         st.caption(f"* Sites in the area: N/A")
         st.caption(f"* Species observed in the area: N/A")
 
+########################
+# Tweak result display #
+########################
+
+st.markdown("---")
+st.caption("**Optional**: Set the number of matches to show. Note that using a high number may slow things down.")
+num_matches = int(st.number_input("Maximum number of matches", min_value=1, max_value=100, step=5, value=10))
+
 ###########################################
 # Display results for the uploaded images #
 ###########################################
 
 for file_index, uploaded_file in enumerate(uploaded_files):
     st.markdown("---")
-    st.subheader(f"Uploaded image #{file_index + 1}")
+    st.subheader(f":camera: Uploaded image #{file_index + 1}")
     st.caption(f"Filename: `{uploaded_file.name}`")
     cropped_img = st_cropper(PILImage.create(uploaded_file), box_color="red")
 
-    st.subheader(f"Cropped image for labelling")
+    st.subheader(f":scissors: Cropped image for labelling")
     with st.columns(3)[1]:
         st.image(cropped_img)
     st.caption("**Tip:** You're likely to get better matches if you crop the image to show a single fish.")
 
-    num_predictions = 10
-    st.subheader(f"Top {num_predictions} matches")
+    st.subheader(f":dizzy: Top {num_matches} {'matches' if num_matches > 1 else 'match'}")
 
     score_explanation = [
         "**Score explanation:**",
@@ -118,7 +126,6 @@ for file_index, uploaded_file in enumerate(uploaded_files):
     st.caption("\n".join(score_explanation))
 
     # TODO: use TTA? what's the cost?
-    # TODO: cache predictions and support changing the number of returned results
     predictions = pd.Series(model.predict(PILImage(cropped_img))[2], index=model.dls.vocab, name="prediction")
     if show_only_area_species:
         predictions = (
@@ -127,7 +134,7 @@ for file_index, uploaded_file in enumerate(uploaded_files):
             .dropna()["prediction"]
         )
     for prediction_index, (species_name, probability) in enumerate(
-        predictions.sort_values(ascending=False).head(num_predictions).items()
+        predictions.sort_values(ascending=False).head(num_matches).items()
     ):
         species_info = species_df[species_df["name"] == species_name].iloc[0]
         common_name = species_info["common_names"].split(", ")[0]
