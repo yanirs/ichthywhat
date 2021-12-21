@@ -1,0 +1,3 @@
+[theme]
+# Default to Dark mode regardless of system settings
+base = "dark"
