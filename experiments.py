@@ -6,7 +6,7 @@ from fastai.callback.core import Callback
 from fastai.callback.mixup import MixUp
 from fastai.data.block import CategoryBlock, DataBlock
 from fastai.data.transforms import RandomSplitter, get_image_files
-from fastai.learner import Learner
+from fastai.learner import Learner, Recorder
 from fastai.metrics import top_k_accuracy, accuracy
 from fastai.torch_core import set_seed
 from fastai.vision.augment import aug_transforms, RandomResizedCrop
@@ -19,15 +19,15 @@ from fastcore.foundation import L as fastcore_list
 class MLflowCallback(Callback):
     """A Learner callback that logs the metrics of each epoch to MLflow."""
 
+    run_after = Recorder
+
     def __init__(self, run_name_prefix="", **kwargs):
         super().__init__(**kwargs)
         self.run_name_prefix = run_name_prefix
 
     def before_epoch(self):
-        # If the recorder doesn't have a log yet, it's the initial run (before epoch 0).
-        epoch = self.epoch if hasattr(self.recorder, "log") else 0
         mlflow.start_run(
-            run_name=f'{self.run_name_prefix}{"frozen" if self.opt.frozen_idx else "unfrozen"} epoch {epoch}',
+            run_name=f'{self.run_name_prefix}{"frozen" if self.opt.frozen_idx else "unfrozen"} epoch {self.epoch}',
             nested=True,
         )
 
@@ -119,13 +119,9 @@ def get_learner_metrics_with_tta(learner: Learner, tta_prefix: str = "", **tta_k
     set_seed(13, reproducible=True)
     metric_values = dict(zip(learner.recorder.metric_names[1:-1], learner.recorder.log[1:-1]))
     with learner.no_bar(), learner.no_logging():
-        # Keep the old log because of learner.tta() side effects
-        old_log = learner.recorder.log
-        # Remove the callback because before_epoch() is called by learner.tta() as a side effect
-        removed_cbs = _remove_cbs_of_types(learner, [MLflowCallback])
+        # Temporarily remove the logging callbacks because before_epoch() is called by learner.tta() as a side effect.
+        removed_cbs = _remove_cbs_of_types(learner, [MLflowCallback, Recorder])
         preds, targs = learner.tta(**tta_kwargs)
-        # Restore the log and callback
-        learner.recorder.log = old_log
         learner.add_cbs(removed_cbs)
     for metric in learner.metrics:
         metric_values[f"{tta_prefix}{metric.name}"] = metric.func(preds, targs).item()
@@ -170,4 +166,7 @@ def run_lr_find_experiment(
             learner.add_cb(MLflowCallback(run_name_prefix=f"after find {i} - "))
         learner.add_cbs(removed_cbs)
 
+        # TODO: This may be wrong -- we don't actually use the next_lr in all iterations because fit_one_cycle() has a
+        # TODO: cyclical learning rate. It may be better to use fit() directly.
+        # TODO: It's also wrong to remove the MixUp callback because then we get loss estimates that ignore its effect.
         learner.fit_one_cycle(num_epochs_between_finds, next_lr)
