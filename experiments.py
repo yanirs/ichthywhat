@@ -1,4 +1,5 @@
 """Assorted experiment utilities."""
+import typing
 from pathlib import Path
 
 import mlflow
@@ -8,7 +9,7 @@ from fastai.data.block import CategoryBlock, DataBlock
 from fastai.data.transforms import RandomSplitter, get_image_files
 from fastai.learner import Learner, Recorder
 from fastai.metrics import top_k_accuracy, accuracy
-from fastai.torch_core import set_seed
+from fastai.torch_core import set_seed, show_image, tensor
 from fastai.vision.augment import aug_transforms, RandomResizedCrop
 from fastai.vision.data import ImageBlock
 from fastai.vision.learner import cnn_learner
@@ -170,3 +171,37 @@ def run_lr_find_experiment(
         # TODO: cyclical learning rate. It may be better to use fit() directly.
         # TODO: It's also wrong to remove the MixUp callback because then we get loss estimates that ignore its effect.
         learner.fit_one_cycle(num_epochs_between_finds, next_lr)
+
+
+def test_learner(
+    learner: Learner, image_paths: typing.Sequence[Path], labels: typing.Sequence[str], show_grid: tuple = (4, 4)
+) -> dict[str, float]:
+    """
+    Test a learner on an unseen set of images, optionally showing some predictions.
+
+    :param learner: The learner to test.
+    :param image_paths: The paths to the images to test.
+    :param labels: The labels for the images.
+    :param show_grid: The number of rows and columns to visualize, or None to show nothing.
+
+    :return: Mapping from top_k_accuracy metric name to its value.
+    """
+    test_dl = learner.dls.test_dl(image_paths)
+    preds = learner.get_preds(dl=test_dl, reorder=False)[0]
+    label_codes = tensor([learner.dls.vocab.o2i.get(label, -1) for label in labels])
+
+    if show_grid:
+        from matplotlib import pyplot as plt
+
+        for ax, img, label, pred in zip(
+            plt.subplots(*show_grid, figsize=(14, 16))[1].flatten(),
+            test_dl.show_batch(show=False)[0],
+            labels,
+            preds,
+        ):
+            show_image(img, ctx=ax)
+            pred_label = learner.dls.vocab[pred.argmax()]
+            ax.set_title(f"[Actual] {label}\n[Predicted] {pred_label}")
+        plt.tight_layout()
+
+    return {f"top_{k}_accuracy": top_k_accuracy(preds, label_codes, k).item() for k in (1, 3, 10)}
