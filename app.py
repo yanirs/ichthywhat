@@ -4,9 +4,10 @@ import sys
 
 from fastai.vision.core import PILImage
 import streamlit as st
+from streamlit_cropper import st_cropper
 import pandas as pd
 
-from app_util import full_resolution_cropper, get_selected_area_info, load_resources
+from app_util import get_selected_area_info, load_resources
 
 ###################################
 # Page config: Must be at the top #
@@ -106,7 +107,7 @@ for file_index, uploaded_file in enumerate(uploaded_files):
     st.caption(f"Filename: `{uploaded_file.name}`")
 
     st.subheader(f":scissors: Cropped image for labelling")
-    cropped_img = full_resolution_cropper(PILImage.create(uploaded_file))
+    cropped_img = st_cropper(PILImage.create(uploaded_file), box_color="red")
     cropped_img_columns = st.columns(3)
     if dev_mode:
         # Prepare the cropped image for download in dev mode, where there's a download button for each ID.

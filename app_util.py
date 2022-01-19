@@ -86,35 +86,3 @@ def load_resources(resources_path=Path(__file__).parent / "resources", local_spe
     site_df = _load_site_df(resources_path / "api-site-surveys.json", species_df)
     model = load_learner(resources_path / "model.pkl")
     return species_df, site_df, model
-
-
-def full_resolution_cropper(img: Image, max_widget_edge: int = 700) -> Image:
-    """
-    A thin wrapper around st_cropper() that returns full-resolution crops.
-
-    This wrapper won't be necessary once https://github.com/turner-anderson/streamlit-cropper/pull/9 is merged.
-
-    :param img: The image to crop.
-    :param max_widget_edge: The maximum widget edge length, assuming a square widget.
-
-    :return: The cropped image.
-    """
-    # Resize according to the maximum widget edge length. This is more efficient than the way it's done in
-    # streamlit_cropper._resize_img(), which potentially resizes the same image twice.
-    # By passing in a resized image to st_cropper(), no resizing should be done by the widget, which allows us to
-    # convert the returned coordinates to the original image coordinates and obtain a full-resolution crop.
-    if max(img.size) > max_widget_edge:
-        resize_ratio = max_widget_edge / max(img.size)
-        resized_img = img.resize((int(img.width * resize_ratio), int(img.height * resize_ratio)))
-        resized_crop_box = st_cropper(resized_img, box_color="red", return_type="box")
-        full_crop_box = {k: int(v / resize_ratio) for k, v in resized_crop_box.items()}
-    else:
-        full_crop_box = st_cropper(img, box_color="red", return_type="box")
-    return img.crop(
-        (
-            full_crop_box["left"],
-            full_crop_box["top"],
-            full_crop_box["width"] + full_crop_box["left"],
-            full_crop_box["height"] + full_crop_box["top"],
-        )
-    )
