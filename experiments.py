@@ -22,19 +22,13 @@ class MLflowCallback(Callback):
 
     run_after = Recorder
 
-    def __init__(self, run_name_prefix="", **kwargs):
+    def __init__(self, start_step=0, **kwargs):
         super().__init__(**kwargs)
-        self.run_name_prefix = run_name_prefix
-
-    def before_epoch(self):
-        mlflow.start_run(
-            run_name=f'{self.run_name_prefix}{"frozen" if self.opt.frozen_idx else "unfrozen"} epoch {self.epoch}',
-            nested=True,
-        )
+        self.step = start_step
 
     def after_epoch(self):
-        mlflow.log_metrics(dict(zip(self.recorder.metric_names[1:], self.recorder.log[1:])))
-        mlflow.end_run()
+        self.step += 1
+        mlflow.log_metrics(dict(zip(self.recorder.metric_names[1:], self.recorder.log[1:])), step=self.step)
 
 
 def top_3_accuracy(inp, targ):
