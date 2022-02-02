@@ -5,9 +5,7 @@ import typing
 from pathlib import Path
 
 import pandas as pd
-from PIL import Image
 import streamlit as st
-from streamlit_cropper import st_cropper
 from fastai.learner import load_learner
 from geopy.distance import geodesic
 
@@ -23,6 +21,8 @@ def _load_species_df(path_or_url: typing.Union[str, Path]) -> pd.DataFrame:
     species_df = pd.read_json(path_or_url, orient="index")
     species_df.columns = ["name", "common_names", "url", "method", "images"]
     species_df["method"] = species_df["method"].map({0: "M1", 1: "M2", 2: "Both"})
+    species_df["common_name"] = species_df["common_names"].str.split(",", n=1).str[0]
+    species_df.drop(columns=["common_names"], inplace=True)
     return species_df
 
 

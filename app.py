@@ -166,58 +166,63 @@ for file_index, uploaded_file in enumerate(uploaded_files):
         )
     st.caption("\n".join(score_explanation))
 
-    # TODO: use TTA? what's the cost?
-    predictions = pd.Series(model.predict(PILImage(cropped_img))[2], index=model.dls.vocab, name="prediction")
+    name_filter = st.text_input(
+        "Optional: Filter matches by specifying a part of the species name",
+        placeholder="Try Leatherjacket, Scarus, or any other relevant word or part of a word",
+        key=f"name-filter-{file_index + 1}",
+    ).strip()
+
+    matches = pd.DataFrame(dict(probability=model.predict(PILImage(cropped_img))[2], name=model.dls.vocab))
+    matches = matches.merge(species_df, on="name")
+    if name_filter:
+        matches = matches[
+            matches["name"].str.contains(name_filter, case=False)
+            | matches["common_name"].str.contains(name_filter, case=False)
+        ]
     if show_only_area_species:
-        predictions = (
-            pd.DataFrame(predictions)
-            .join(pd.Series(selected_area_info["species_freqs"], name="area_freq"))
-            .dropna()["prediction"]
+        matches = matches.merge(
+            pd.Series(selected_area_info["species_freqs"], name="area_freq"),
+            left_on="name",
+            right_index=True,
         )
-    for prediction_index, (species_name, probability) in enumerate(
-        predictions.sort_values(ascending=False).head(num_matches).items()
-    ):
-        species_info = species_df[species_df["name"] == species_name].iloc[0]
-        common_name = species_info["common_names"].split(", ")[0]
+
+    matches = matches.sort_values("probability", ascending=False).head(num_matches).reset_index(drop=True)
+    for match in matches.itertuples():
         if selected_site_info.empty:
             site_freq_str = "N/A"
         else:
-            site_freq = selected_site_info["species_counts"].get(species_name, 0) / selected_site_info["num_surveys"]
+            site_freq = selected_site_info["species_counts"].get(match.name, 0) / selected_site_info["num_surveys"]
             site_freq_str = f"{100 * site_freq:.1f}%"
         if selected_area_info:
-            area_freq_str = f"{100 * selected_area_info['species_freqs'][species_name]:.1f}%"
+            area_freq_str = f"{100 * selected_area_info['species_freqs'][match.name]:.1f}%"
         else:
             area_freq_str = "N/A"
 
         info_columns = st.columns([3, 2])
         with info_columns[0]:
-            st.markdown(
-                f"{prediction_index + 1}) "
-                f'[_{species_name}_{f" &ndash; {common_name}" if common_name else ""}]({species_info["url"]})'
-            )
+            match_link = f'[_{match.name}_{f" &ndash; {match.common_name}" if match.common_name else ""}]({match.url})'
+            st.markdown(f"{match.Index + 1}) {match_link}")
         with info_columns[1]:
-            st.info(f"**image:** `{probability:.2f}` | **site:** `{site_freq_str}` | **area:** `{area_freq_str}`")
+            st.info(f"**image:** `{match.probability:.2f}` | **site:** `{site_freq_str}` | **area:** `{area_freq_str}`")
 
         image_columns = st.columns(3)
-        for image_index, image_path_or_url in enumerate(species_info["images"]):
+        for image_index, image_path_or_url in enumerate(match.images):
             with image_columns[image_index % 3]:
                 st.image(image_path_or_url)
 
         # The sidebar and download button are dev-only features.
         if dev_mode:
-            if not prediction_index:
+            if not match.Index:
                 st.sidebar.markdown("---")
                 st.sidebar.markdown(
                     f"[Image #{file_index + 1}: `{uploaded_file.name}`](#uploaded-image-{file_index + 1})"
                 )
                 st.sidebar.image(cropped_img)
-                st.sidebar.markdown(
-                    f'**Top match**: [_{species_name}_{f" &ndash; {common_name}" if common_name else ""}]({species_info["url"]})'
-                )
+                st.sidebar.markdown(f"**Top match**: {match_link}")
 
             with st.columns(3)[1]:
                 st.download_button(
                     "💾 Save cropped as this ID",
                     cropped_img_bytes,
-                    file_name=f"{uploaded_filename_id}C - {species_name}.jpg",
+                    file_name=f"{uploaded_filename_id}C - {match.name}.jpg",
                 )
