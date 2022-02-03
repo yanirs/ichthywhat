@@ -1,3 +1,6 @@
+[mapbox]
+token = "pk.eyJ1IjoieWFuaXItcmxzIiwiYSI6ImNrejY5anUzYzA3OWwydm1wdDVmeGxiejYifQ.DyvEnN8mEuWYlTXvNQSztA"
+
 [theme]
 # Default to Dark mode regardless of system settings
 base = "dark"
