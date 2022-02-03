@@ -14,10 +14,21 @@ from app_util import get_selected_area_info, load_resources
 ###################################
 
 dev_mode = len(sys.argv) > 1 and sys.argv[1] == "dev"
+about_text = """
+    This is an _experimental_ web app for fish identification using underwater photos. It uses deep learning to find
+    the species that best match the uploaded photos, out of over two thousand species recorded on
+    [Reef Life Survey Method 1](https://reeflifesurvey.com/methods/) dives.
+
+    Feedback is very welcome! Please send any comments via the
+    [Reef Life Survey contact form](https://reeflifesurvey.com/contact/).
+"""
+page_menu_items = {"Get help": None, "Report a Bug": "https://reeflifesurvey.com/contact/", "About": about_text}
 if dev_mode:
-    st.set_page_config(page_title="[Dev] Ichthy-what? Fishy photo ID", page_icon=":tropical_fish:")
+    st.set_page_config(
+        page_title="[Dev] Ichthy-what? Fishy photo ID", page_icon=":tropical_fish:", menu_items=page_menu_items
+    )
 else:
-    st.set_page_config(page_title="Ichthy-what? Fishy photo ID", page_icon=":fish:")
+    st.set_page_config(page_title="Ichthy-what? Fishy photo ID", page_icon=":fish:", menu_items=page_menu_items)
 
 ########################
 # Load data and models #
@@ -29,8 +40,16 @@ species_df, site_df, model = load_resources(local_species=dev_mode)
 # Show instructions and collect inputs #
 ########################################
 
-st.title("_Ichthy-what?_ Fishy photo ID :fish:")
+# Unfortunately, this hack is needed to get the logo to display nicely.
+st.markdown(
+    '# <a href="https://www.reeflifesurvey.com">'
+    '<img src="https://reeflifesurvey.com/wp-content/uploads/2019/02/cropped-site-identity-1-192x192.png" '
+    'style="float: right; margin-top: 10px; width: 50px"></a> _Ichthy-what?_ Fishy photo ID',
+    unsafe_allow_html=True,
+)
+st.info(about_text)
 
+st.markdown("---")
 st.caption("**Required**: Upload fishy photos to label (cephalopods and other swimmers may work too).")
 uploaded_files = st.file_uploader("Choose image files", accept_multiple_files=True)
 

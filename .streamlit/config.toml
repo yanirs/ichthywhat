@@ -1,6 +1,11 @@
 [mapbox]
 token = "pk.eyJ1IjoieWFuaXItcmxzIiwiYSI6ImNrejY5anUzYzA3OWwydm1wdDVmeGxiejYifQ.DyvEnN8mEuWYlTXvNQSztA"
 
+[server]
+# Max size, in megabytes, for files uploaded with the file_uploader. Changed from the default 200MB since users are only
+# expected to upload photos.
+maxUploadSize = 20
+
 [theme]
 # Default to Dark mode regardless of system settings
 base = "dark"
