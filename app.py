@@ -42,7 +42,7 @@ species_df, site_df, model = load_resources(local_species=dev_mode)
 
 # Unfortunately, this hack is needed to get the logo to display nicely.
 st.markdown(
-    '# <a href="https://www.reeflifesurvey.com">'
+    '# <a href="https://www.reeflifesurvey.com" target="_blank" rel="noopener">'
     '<img src="https://reeflifesurvey.com/wp-content/uploads/2019/02/cropped-site-identity-1-192x192.png" '
     'style="float: right; margin-top: 10px; width: 50px"></a> _Ichthy-what?_ Fishy photo ID',
     unsafe_allow_html=True,
@@ -78,7 +78,6 @@ with location_columns[2]:
 show_only_area_species = st.checkbox(
     "Only show species known from the area",
     help="Recommended only if the number of surveys in the area is high",
-    disabled=not selected_lat and not selected_lon,
 )
 
 ############################################
@@ -203,7 +202,7 @@ for file_index, uploaded_file in enumerate(uploaded_files):
             matches["name"].str.contains(name_filter, case=False)
             | matches["common_name"].str.contains(name_filter, case=False)
         ]
-    if show_only_area_species:
+    if show_only_area_species and selected_area_info:
         matches = matches.merge(
             pd.Series(selected_area_info["species_freqs"], name="area_freq"),
             left_on="name",
