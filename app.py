@@ -76,7 +76,9 @@ with location_columns[1]:
 with location_columns[2]:
     selected_area_radius = st.number_input("Area radius (km)", min_value=0.0, step=10.0, value=500.0)
 show_only_area_species = st.checkbox(
-    "Only show species known from the area", help="Recommended only if the number of surveys in the area is high"
+    "Only show species known from the area",
+    help="Recommended only if the number of surveys in the area is high",
+    disabled=not selected_lat and not selected_lon,
 )
 
 ############################################
@@ -107,15 +109,18 @@ with st.expander("Location details"):
 ########################
 
 st.markdown("---")
-st.caption("**Optional**: Set the number of matches to show. Note that using a high number may slow things down.")
+st.caption(
+    "**Optional**: Set the number of matches to show and choose whether to display the navigation sidebar. Note that "
+    "showing a high number of matches may slow things down, and that the navigation sidebar can be a bit fiddly."
+)
 num_matches = int(st.number_input("Maximum number of matches", min_value=1, max_value=100, step=5, value=10))
+show_navigation_sidebar = st.checkbox("Show navigation sidebar", value=dev_mode)
 
 ###########################################
 # Display results for the uploaded images #
 ###########################################
 
-# Show a navigation sidebar in dev mode (may graduate to a non-dev feature eventually).
-if dev_mode and uploaded_files:
+if show_navigation_sidebar and uploaded_files:
     st.sidebar.markdown("[:small_red_triangle: Top](#ichthy-what-fishy-photo-id)")
 
 # Iterate over the uploaded files and display the results.
@@ -229,16 +234,14 @@ for file_index, uploaded_file in enumerate(uploaded_files):
             with image_columns[image_index % 3]:
                 st.image(image_path_or_url)
 
-        # The sidebar and download button are dev-only features.
-        if dev_mode:
-            if not match.Index:
-                st.sidebar.markdown("---")
-                st.sidebar.markdown(
-                    f"[Image #{file_index + 1}: `{uploaded_file.name}`](#uploaded-image-{file_index + 1})"
-                )
-                st.sidebar.image(cropped_img)
-                st.sidebar.markdown(f"**Top match**: {match_link}")
+        # Only show a sidebar entry for the top match.
+        if show_navigation_sidebar and not match.Index:
+            st.sidebar.markdown("---")
+            st.sidebar.markdown(f"[Image #{file_index + 1}: `{uploaded_file.name}`](#uploaded-image-{file_index + 1})")
+            st.sidebar.image(cropped_img)
+            st.sidebar.markdown(f"**Top match**: {match_link}")
 
+        if dev_mode:
             with st.columns(3)[1]:
                 st.download_button(
                     "💾 Save cropped as this ID",
