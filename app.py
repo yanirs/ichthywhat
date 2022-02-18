@@ -4,6 +4,7 @@ import sys
 
 from fastai.vision.core import PILImage
 import streamlit as st
+import streamlit_analytics
 from streamlit_cropper import st_cropper
 import pandas as pd
 
@@ -51,7 +52,8 @@ st.info(about_text)
 
 st.markdown("---")
 st.caption("**Required**: Upload fishy photos to label (cephalopods and other swimmers may work too).")
-uploaded_files = st.file_uploader("Choose image files", accept_multiple_files=True)
+with streamlit_analytics.track():  # Only track this bit to get uniques, page views, and high-level interactions.
+    uploaded_files = st.file_uploader("Choose image files", accept_multiple_files=True)
 
 st.markdown("---")
 st.caption(

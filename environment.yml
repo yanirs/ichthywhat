@@ -8,4 +8,5 @@ dependencies:
     - geopy==2.2.0
     - mlflow==1.21.0
     - streamlit==1.4.0
+    - git+https://github.com/yanirs/streamlit-analytics
     - streamlit-cropper==0.2.0
