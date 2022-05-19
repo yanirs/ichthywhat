@@ -3,21 +3,20 @@ Experimenting with deep learning for fish ID.
 
 ## Setup
 
-Create the Conda environment for development:
+Prerequisites: Set up Python 3.9 (e.g., with [pyenv](https://github.com/pyenv/pyenv)) and [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/).
 
-    $ conda env create --file environment-dev.yml
+Create a virtual environment with the minimal requirements for the Streamlit fish ID app:
+
+    $ mkvirtualenv -r requirements.txt deep-fish-prod
+
+Create a virtual environment with additional development requirements:
+
+    $ mkvirtualenv -r requirements.txt deep-fish-dev
+    $ pip install -r requirements-dev.txt
 
 Install pre-commit hooks:
 
     $ pre-commit install
-
-Note that the Conda environment for Streamlit in production uses the default `environment.yml` file. This is due to the
-following limitations of Streamlit Cloud, which appear to stem from them installing the requirements into an existing
-environment rather than creating one from scratch:
-
-* `environment.yml` excludes the `name` field. When it is included, Streamlit doesn't find `fastai`.
-* `environment.yml` includes only the minimal dependencies need to run the app, which avoids hitting the error discussed
-  [here](https://discuss.streamlit.io/t/error-cannot-uninstall-entrypoints-it-is-a-distutils-installed-project-and-thus-we-cannot-accurately-determine-which-files-belong-to-it-which-would-lead-to-only-a-partial-uninstall-condaenvexception-pip-failed/16708).
 
 ## Jupyter notebooks
 
