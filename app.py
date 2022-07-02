@@ -14,6 +14,8 @@ from app_util import get_selected_area_info, load_resources
 ###################################
 
 dev_mode = len(sys.argv) > 1 and sys.argv[1] == "dev"
+if dev_mode:
+    img_root = sys.argv[2]
 about_text = """
     This is an _experimental_ web app for fish identification using underwater photos. It uses deep learning to find
     the species that best match the uploaded photos, out of over two thousand species recorded on
@@ -231,7 +233,7 @@ for file_index, uploaded_file in enumerate(uploaded_files):
         image_columns = st.columns(3)
         for image_index, image_path_or_url in enumerate(match.images):
             with image_columns[image_index % 3]:
-                st.image(image_path_or_url)
+                st.image(img_root + image_path_or_url if dev_mode else image_path_or_url)
 
         # Only show a sidebar entry for the top match.
         if show_navigation_sidebar and not match.Index:

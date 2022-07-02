@@ -29,7 +29,7 @@ Run with `PYTHONPATH` to access functionality from the root Python files.
 Run via streamlit in local development mode (run on save, use local species images, and expose beta features &ndash; the
 `ichthywhat.localhost` address is needed for the Mapbox API to work and a mapping should exist in `/etc/hosts`):
 
-    $ streamlit run --browser.serverAddress ichthywhat.localhost --server.runOnSave true app.py -- dev
+    $ streamlit run --browser.serverAddress ichthywhat.localhost --server.runOnSave true app.py -- dev /path/to/img/root
 
 Run via streamlit in production mode:
 
