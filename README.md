@@ -3,37 +3,32 @@ Experimenting with deep learning for fish ID.
 
 ## Setup
 
-Prerequisites: Set up Python 3.9 (e.g., with [pyenv](https://github.com/pyenv/pyenv)) and [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/).
+Prerequisites: Set up Python 3.9 (e.g., with [pyenv](https://github.com/pyenv/pyenv)) and [Poetry](https://python-poetry.org/).
 
-Create a virtual environment with the minimal requirements for the Streamlit fish ID app:
+Set up the Poetry environment:
 
-    $ mkvirtualenv -r requirements.txt deep-fish-prod
-
-Create a virtual environment with additional development requirements:
-
-    $ mkvirtualenv -r requirements.txt deep-fish-dev
-    $ pip install -r requirements-dev.txt
+    $ poetry install
 
 Install pre-commit hooks:
 
-    $ pre-commit install
+    $ poetry run pre-commit install
 
 ## Jupyter notebooks
 
 Run with `PYTHONPATH` to access functionality from the root Python files.
 
-    $ PYTHONPATH=~/projects/deep-fish jupyter notebook
+    $ PYTHONPATH=/path/to/deep-fish poetry run jupyter notebook
 
 ## Fish ID app
 
 Run via streamlit in local development mode (run on save, use local species images, and expose beta features &ndash; the
 `ichthywhat.localhost` address is needed for the Mapbox API to work and a mapping should exist in `/etc/hosts`):
 
-    $ streamlit run --browser.serverAddress ichthywhat.localhost --server.runOnSave true app.py -- dev /path/to/img/root
+    $ poetry run streamlit run --browser.serverAddress ichthywhat.localhost --server.runOnSave true app.py -- dev /path/to/img/root
 
 Run via streamlit in production mode:
 
-    $ streamlit run app.py
+    $ poetry run streamlit run app.py
 
 Build a new model by running the code in `notebooks/03-app.ipynb`.
 
@@ -41,13 +36,13 @@ Build a new model by running the code in `notebooks/03-app.ipynb`.
 
 Use MLflow:
 
-    $ mlflow ui --backend-store-uri sqlite:///mlruns.db
+    $ poetry run mlflow ui --backend-store-uri sqlite:///mlruns.db
 
 ## Command line interface
 
 Create an RLS species dataset:
 
-    $ python manage.py create-rls-species-dataset \
+    $ poetry run python manage.py create-rls-species-dataset \
         --m1-csv-path ~/projects/fish-id/data/dump-20210717/m1.csv \
         --image-dir ~/projects/yanirs.github.io/tools/rls/img \
         --output-dir data/rls-species-25-min-images-3/ \
@@ -56,13 +51,13 @@ Create an RLS species dataset:
 
 Create an RLS genus dataset:
 
-    $ python manage.py create-rls-genus-dataset \
+    $ poetry run python manage.py create-rls-genus-dataset \
         --image-dir ~/projects/yanirs.github.io/tools/rls/img \
         --output-dir data/rls-top-5-genera \
         --num-top-genera 5
 
 Create a test dataset from a trip directory:
 
-    $ python manage.py create-test-dataset \
+    $ poetry run python manage.py create-test-dataset \
         --trip-dir ~/Pictures/202010\ Eviota\ GBR \
         --output-dir data/eviota-202010

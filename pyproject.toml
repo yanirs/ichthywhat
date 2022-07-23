@@ -1,3 +1,23 @@
-[tool.black]
-line-length = 120
-target-version = ['py39']
+[tool.poetry]
+name = "ichthywhat"
+version = "1.0.0"
+description = "Ichthy-what? Fishy photo ID with Reef Life Survey data"
+authors = ["Yanir Seroussi <rls@yanirseroussi.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastai = "^2.5.6"
+geopy = "^2.2.0"
+mlflow = "^1.21.1"
+streamlit = "^1.8.1"
+streamlit-cropper = "^0.2.0"
+
+[tool.poetry.dev-dependencies]
+jupyter = "^1.0.0"
+black = {extras = ["jupyter"], version = "^22.6.0"}
+defopt = "^6.1.0"
+pre-commit = "^2.20.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

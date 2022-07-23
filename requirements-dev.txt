@@ -1,4 +1,0 @@
-jupyter==1.0
-black[jupyter]==21.11b1
-defopt==6.1.0
-pre-commit==2.16.0
