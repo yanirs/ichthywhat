@@ -3,26 +3,21 @@ Experimenting with deep learning for fish ID.
 
 ## Setup
 
-Prerequisites: Set up Python 3.9 (e.g., with [pyenv](https://github.com/pyenv/pyenv)) and [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/).
+Prerequisites: Set up Python 3.9 (e.g., with [pyenv](https://github.com/pyenv/pyenv)) and [Poetry](https://python-poetry.org/).
 
-Create a virtual environment with the minimal requirements for the Streamlit fish ID app:
+Set up the Poetry environment:
 
-    $ mkvirtualenv -r requirements.txt deep-fish-prod
-
-Create a virtual environment with additional development requirements:
-
-    $ mkvirtualenv -r requirements.txt deep-fish-dev
-    $ pip install -r requirements-dev.txt
+    $ poetry install
 
 Install pre-commit hooks:
 
-    $ pre-commit install
+    $ poetry run pre-commit install
 
 ## Jupyter notebooks
 
 Run with `PYTHONPATH` to access functionality from the root Python files.
 
-    $ PYTHONPATH=~/projects/deep-fish jupyter notebook
+    $ PYTHONPATH=/path/to/deep-fish poetry run jupyter notebook
 
 ## Fish ID app
 
