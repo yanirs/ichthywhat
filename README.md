@@ -13,12 +13,6 @@ Install pre-commit hooks:
 
     $ poetry run pre-commit install
 
-## Jupyter notebooks
-
-Run with `PYTHONPATH` to access functionality from the root Python files.
-
-    $ PYTHONPATH=/path/to/deep-fish poetry run jupyter notebook
-
 ## Fish ID app
 
 Run via streamlit in local development mode (run on save, use local species images, and expose beta features &ndash; the
@@ -31,6 +25,10 @@ Run via streamlit in production mode:
     $ poetry run streamlit run app.py
 
 Build a new model by running the code in `notebooks/03-app.ipynb`.
+
+## Jupyter notebooks used for experimentation and model building
+
+    $ poetry run jupyter notebook
 
 ## Experiment monitoring
 
