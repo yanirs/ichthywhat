@@ -8,40 +8,40 @@ from fastai.callback.mixup import MixUp
 from fastai.data.block import CategoryBlock, DataBlock
 from fastai.data.transforms import RandomSplitter, get_image_files
 from fastai.learner import Learner, Recorder
-from fastai.metrics import top_k_accuracy, accuracy
+from fastai.metrics import accuracy, top_k_accuracy
 from fastai.torch_core import set_seed, show_image, tensor
-from fastai.vision.augment import aug_transforms, RandomResizedCrop
+from fastai.vision.augment import RandomResizedCrop, aug_transforms
 from fastai.vision.data import ImageBlock
 from fastai.vision.learner import cnn_learner
 from fastcore.basics import range_of
-from fastcore.foundation import L as fastcore_list
+from fastcore.foundation import L as fastcore_list  # noqa: N811
 
 
-class MLflowCallback(Callback):
+class MLflowCallback(Callback):  # type: ignore[misc]
     """A Learner callback that logs the metrics of each epoch to MLflow."""
 
     run_after = Recorder
 
-    def __init__(self, start_step=0, **kwargs):
+    def __init__(self, start_step: int = 0, **kwargs: typing.Any):
         super().__init__(**kwargs)
         self.step = start_step
 
-    def after_epoch(self):
+    def after_epoch(self) -> None:  # noqa: D102
         self.step += 1
         mlflow.log_metrics(dict(zip(self.recorder.metric_names[1:], self.recorder.log[1:])), step=self.step)
 
 
-def top_3_accuracy(inp, targ):
+def top_3_accuracy(inp: typing.Sequence[float], targ: typing.Sequence[float]) -> float:
     """Delegate to top_k_accuarcy with k=3."""
-    return top_k_accuracy(inp, targ, k=3)
+    return top_k_accuracy(inp, targ, k=3)  # type: ignore[no-any-return]
 
 
-def top_10_accuracy(inp, targ):
+def top_10_accuracy(inp: typing.Sequence[float], targ: typing.Sequence[float]) -> float:
     """Delegate to top_k_accuarcy with k=10."""
-    return top_k_accuracy(inp, targ, k=10)
+    return top_k_accuracy(inp, targ, k=10)  # type: ignore[no-any-return]
 
 
-def delete_run_with_children(parent_run_id: str):
+def delete_run_with_children(parent_run_id: str) -> None:
     """Delete an MLflow run together with all its children."""
     client = mlflow.tracking.client.MlflowClient()
     parent_run = client.get_run(parent_run_id)
@@ -57,12 +57,22 @@ def get_species_from_path(path: Path) -> str:
     return " ".join(path.name.split("-")[:2]).capitalize()
 
 
-def no_validation_splitter(items):
-    """A DataBlock splitter that uses all the data for training. See notebooks/03-app.ipynb for a usage example."""
+def no_validation_splitter(items: typing.Sequence[typing.Any]) -> fastcore_list:
+    """
+    Split a DataBlock so that all the data is used for training.
+
+    See notebooks/03-app.ipynb for a usage example.
+    """
     return fastcore_list(range_of(items)), fastcore_list([])
 
 
-def create_reproducible_learner(arch, dataset_path: Path, db_kwargs=None, dls_kwargs=None, learner_kwargs=None):
+def create_reproducible_learner(
+    arch: typing.Any,
+    dataset_path: Path,
+    db_kwargs: typing.Optional[dict[str, typing.Any]] = None,
+    dls_kwargs: typing.Optional[dict[str, typing.Any]] = None,
+    learner_kwargs: typing.Optional[dict[str, typing.Any]] = None,
+) -> Learner:
     """
     Create a learner that should yield reproducible results across runs.
 
@@ -101,7 +111,9 @@ def _remove_cbs_of_types(learner: Learner, cb_types: list[type]) -> list[Callbac
     return removed_cbs
 
 
-def get_learner_metrics_with_tta(learner: Learner, tta_prefix: str = "", **tta_kwargs) -> dict[str, float]:
+def get_learner_metrics_with_tta(
+    learner: Learner, tta_prefix: str = "", **tta_kwargs: dict[str, typing.Any]
+) -> dict[str, float]:
     """
     Use test-time augmentation (TTA) to calculate the learner's metrics on the validation set.
 
@@ -127,10 +139,10 @@ def run_lr_find_experiment(
     learner: Learner,
     num_epochs_between_finds: int,
     num_finds: int,
-    suggestion_method: callable,
+    suggestion_method: typing.Callable,  # type: ignore[type-arg]
     show_plot: bool = False,
     disable_mlflow: bool = False,
-):
+) -> None:
     """
     Run a learning rate finder experiment: Initial fine tuning, then a series of learning rate finds.
 
@@ -168,7 +180,10 @@ def run_lr_find_experiment(
 
 
 def test_learner(
-    learner: Learner, image_paths: typing.Sequence[Path], labels: typing.Sequence[str], show_grid: tuple = (4, 4)
+    learner: Learner,
+    image_paths: typing.Sequence[Path],
+    labels: typing.Sequence[str],
+    show_grid: tuple[int, int] = (4, 4),
 ) -> dict[str, float]:
     """
     Test a learner on an unseen set of images, optionally showing some predictions.

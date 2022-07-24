@@ -1,14 +1,68 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
-    hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
--   repo: https://github.com/psf/black
-    rev: 21.11b1
-    hooks:
-    -   id: black-jupyter
-        args: [--check]
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: 3298ddab3c13dd77d6ce1fc0baf97691430d84b0  # frozen: v4.3.0
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+    exclude: "resources/.*\\.json"
+  - id: check-docstring-first
+  - id: check-executables-have-shebangs
+  - id: check-json
+  - id: check-yaml
+  - id: check-toml
+  - id: debug-statements
+  - id: check-merge-conflict
+  - id: destroyed-symlinks
+
+- repo: https://github.com/psf/black
+  rev: f6c139c5215ce04fd3e73a900f1372942d58eca0  # frozen: 22.6.0
+  hooks:
+  - id: black-jupyter
+    language_version: python3
+
+- repo: https://github.com/pycqa/docformatter
+  rev: 67919ee01837761f2d954d7fbb08c12cdd38ec5a  # frozen: v1.4
+  hooks:
+    - id: docformatter
+      args: [
+        -i,
+        --wrap-summaries=120,
+        --wrap-descriptions=120,
+        --pre-summary-newline,
+      ]
+
+- repo: https://github.com/pycqa/autoflake
+  rev: 7a53fdafc82c33f446915b60fcac947c51279260  # frozen: v1.4
+  hooks:
+    - id: autoflake
+      args: ['--in-place', '--remove-all-unused-imports', '--remove-unused-variable']
+
+- repo: https://github.com/pycqa/isort
+  rev: c5e8fa75dda5f764d20f66a215d71c21cfa198e1  # frozen: 5.10.1
+  hooks:
+  - id: isort
+
+- repo: https://gitlab.com/pycqa/flake8
+  rev: dcd740bc0ebaf2b3d43e59a0060d157c97de13f3  # frozen: 3.9.2
+  hooks:
+    - id: flake8
+      additional_dependencies: [
+        'pep8-naming',
+        'flake8-comprehensions',
+        'flake8-bugbear',
+        'flake8-pytest-style',
+        'flake8-variables-names',
+        'flake8-class-attributes-order',
+        'flake8-keyword-arguments',
+        'dlint',
+        'flake8-docstrings',
+      ]
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: fde4bb992b03943ecb94207a52739ba07957bd06  # frozen: v0.971
+  hooks:
+    - id: mypy
+      args: [--ignore-missing-imports, --check-untyped-defs, --disallow-incomplete-defs, --show-error-codes, --strict]
+      additional_dependencies: [types-requests==2.27.19]

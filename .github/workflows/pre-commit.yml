@@ -1,0 +1,40 @@
+name: Pre-commit checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+
+      - name: Set up cache
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: |
+            .venv
+            ~/.poetry
+            ~/.cache
+          key: venv-${{ hashFiles('poetry.lock', '.pre-commit-config.yaml') }}
+
+      - name: Install poetry
+        run: |
+          pip install poetry
+
+      - name: Install dependencies
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install
+
+      - name: Run pre-commit
+        run: poetry run pre-commit run --all-files

@@ -18,7 +18,6 @@ streamlit-cropper = "^0.2.0"
 
 [tool.poetry.dev-dependencies]
 jupyter = "^1.0.0"
-black = {extras = ["jupyter"], version = "^22.6.0"}
 defopt = "^6.1.0"
 pre-commit = "^2.20.0"
 
@@ -27,3 +26,8 @@ ichthywhat = "ichthywhat:run_cli"
 
 [tool.black]
 line-length = 120
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 120
