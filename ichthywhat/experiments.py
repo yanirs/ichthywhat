@@ -8,9 +8,9 @@ from fastai.callback.mixup import MixUp
 from fastai.data.block import CategoryBlock, DataBlock
 from fastai.data.transforms import RandomSplitter, get_image_files
 from fastai.learner import Learner, Recorder
-from fastai.metrics import top_k_accuracy, accuracy
+from fastai.metrics import accuracy, top_k_accuracy
 from fastai.torch_core import set_seed, show_image, tensor
-from fastai.vision.augment import aug_transforms, RandomResizedCrop
+from fastai.vision.augment import RandomResizedCrop, aug_transforms
 from fastai.vision.data import ImageBlock
 from fastai.vision.learner import cnn_learner
 from fastcore.basics import range_of
@@ -58,7 +58,11 @@ def get_species_from_path(path: Path) -> str:
 
 
 def no_validation_splitter(items):
-    """A DataBlock splitter that uses all the data for training. See notebooks/03-app.ipynb for a usage example."""
+    """
+    A DataBlock splitter that uses all the data for training.
+
+    See notebooks/03-app.ipynb for a usage example.
+    """
     return fastcore_list(range_of(items)), fastcore_list([])
 
 

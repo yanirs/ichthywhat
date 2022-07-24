@@ -1,7 +1,7 @@
 """Utilities to use as part of the streamlit app."""
 
-from collections import defaultdict
 import typing
+from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd

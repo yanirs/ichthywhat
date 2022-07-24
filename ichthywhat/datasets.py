@@ -1,6 +1,6 @@
+import shutil
 from collections import Counter
 from pathlib import Path
-import shutil
 
 import pandas as pd
 from PIL import Image
@@ -72,7 +72,11 @@ def create_rls_species_dataset(
 
 
 def _crop_image_file(src: Path, dst: Path, top_bottom_pixels=55):
-    """Crop the top and bottom of an image. The default pixel count is useful for removing the RLS URL."""
+    """
+    Crop the top and bottom of an image.
+
+    The default pixel count is useful for removing the RLS URL.
+    """
     with Image.open(src) as im:
         width, height = im.size
         im.crop((0, top_bottom_pixels, width, height - top_bottom_pixels)).save(dst)

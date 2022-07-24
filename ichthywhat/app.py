@@ -2,12 +2,11 @@
 import io
 import sys
 
-from fastai.vision.core import PILImage
-import streamlit as st
-from streamlit_cropper import st_cropper
 import pandas as pd
-
+import streamlit as st
 from app_util import get_selected_area_info, load_resources
+from fastai.vision.core import PILImage
+from streamlit_cropper import st_cropper
 
 ###################################
 # Page config: Must be at the top #
