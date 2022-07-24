@@ -73,7 +73,7 @@ def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius
 
 
 @st.experimental_singleton
-def load_resources(resources_path=Path(__file__).parent / "resources", local_species=False) -> tuple:
+def load_resources(resources_path=Path(__file__).parent.parent / "resources", local_species=False) -> tuple:
     """
     Load and cache all the static resources used by the streamlit app.
 
