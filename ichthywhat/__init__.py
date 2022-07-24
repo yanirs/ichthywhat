@@ -3,7 +3,7 @@ import logging
 
 import defopt
 
-from datasets import create_rls_genus_dataset, create_rls_species_dataset, create_test_dataset
+from .datasets import create_rls_genus_dataset, create_rls_species_dataset, create_test_dataset
 
 
 def run_cli() -> None:
