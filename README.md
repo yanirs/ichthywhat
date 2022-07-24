@@ -13,12 +13,6 @@ Install pre-commit hooks:
 
     $ poetry run pre-commit install
 
-## Jupyter notebooks
-
-Run with `PYTHONPATH` to access functionality from the root Python files.
-
-    $ PYTHONPATH=/path/to/deep-fish poetry run jupyter notebook
-
 ## Fish ID app
 
 Run via streamlit in local development mode (run on save, use local species images, and expose beta features &ndash; the
@@ -32,6 +26,10 @@ Run via streamlit in production mode:
 
 Build a new model by running the code in `notebooks/03-app.ipynb`.
 
+## Jupyter notebooks used for experimentation and model building
+
+    $ poetry run jupyter notebook
+
 ## Experiment monitoring
 
 Use MLflow:
@@ -42,7 +40,7 @@ Use MLflow:
 
 Create an RLS species dataset:
 
-    $ poetry run python manage.py create-rls-species-dataset \
+    $ poetry run ichthywhat create-rls-species-dataset \
         --m1-csv-path ~/projects/fish-id/data/dump-20210717/m1.csv \
         --image-dir ~/projects/yanirs.github.io/tools/rls/img \
         --output-dir data/rls-species-25-min-images-3/ \
@@ -51,13 +49,13 @@ Create an RLS species dataset:
 
 Create an RLS genus dataset:
 
-    $ poetry run python manage.py create-rls-genus-dataset \
+    $ poetry run ichthywhat create-rls-genus-dataset \
         --image-dir ~/projects/yanirs.github.io/tools/rls/img \
         --output-dir data/rls-top-5-genera \
         --num-top-genera 5
 
 Create a test dataset from a trip directory:
 
-    $ poetry run python manage.py create-test-dataset \
+    $ poetry run ichthywhat create-test-dataset \
         --trip-dir ~/Pictures/202010\ Eviota\ GBR \
         --output-dir data/eviota-202010
