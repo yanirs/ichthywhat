@@ -3,12 +3,13 @@
 import shutil
 from collections import Counter
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 from PIL import Image
 
 
-def create_rls_genus_dataset(*, image_dir: Path, output_dir: Path, num_top_genera: int):
+def create_rls_genus_dataset(*, image_dir: Path, output_dir: Path, num_top_genera: int) -> None:
     """
     Create a dataset of the top genera from an RLS image directory. Images are cropped to remove the RLS URL.
 
@@ -29,8 +30,13 @@ def create_rls_genus_dataset(*, image_dir: Path, output_dir: Path, num_top_gener
 
 
 def create_rls_species_dataset(
-    *, m1_csv_path: Path, image_dir: Path, output_dir: Path, num_species: int = None, min_images_per_species: int = 1
-):
+    *,
+    m1_csv_path: Path,
+    image_dir: Path,
+    output_dir: Path,
+    num_species: Optional[int] = None,
+    min_images_per_species: int = 1,
+) -> None:
     """
     Create a dataset directory from an RLS image directory. Images are cropped to remove the RLS URL.
 
@@ -42,7 +48,7 @@ def create_rls_species_dataset(
     """
     species_with_min_images = set()
     species_with_duplicates = set()
-    hash_to_image_path = {}
+    hash_to_image_path: dict[int, Path] = {}
     for image_path in image_dir.iterdir():
         try:
             genus, taxon, suffix = image_path.name.split("-")
@@ -73,7 +79,7 @@ def create_rls_species_dataset(
             _crop_image_file(src_filename, output_dir / src_filename.name)
 
 
-def _crop_image_file(src: Path, dst: Path, top_bottom_pixels=55):
+def _crop_image_file(src: Path, dst: Path, top_bottom_pixels: int = 55) -> None:
     """
     Crop the top and bottom of an image.
 
@@ -84,7 +90,7 @@ def _crop_image_file(src: Path, dst: Path, top_bottom_pixels=55):
         im.crop((0, top_bottom_pixels, width, height - top_bottom_pixels)).save(dst)
 
 
-def create_test_dataset(*, trip_dir: Path, output_dir: Path):
+def create_test_dataset(*, trip_dir: Path, output_dir: Path) -> None:
     """
     Create a test dataset from a trip directory, which is traversed recursively.
 

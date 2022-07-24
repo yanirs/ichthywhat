@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from fastai.learner import load_learner
+from fastai.learner import Learner, load_learner
 from geopy.distance import geodesic
 
 DEFAULT_RESOURCES_PATH = Path(__file__).parent.parent / "resources"
@@ -49,8 +49,8 @@ def _load_site_df(path_or_url: typing.Union[str, Path], species_df: pd.DataFrame
     return site_df
 
 
-@st.experimental_memo(max_entries=5)
-def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius: float) -> dict:
+@st.experimental_memo(max_entries=5)  # type: ignore[misc]
+def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius: float) -> dict[str, typing.Any]:
     """
     Get information about the selected area.
 
@@ -67,15 +67,17 @@ def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius
     site_distances = site_df.apply(lambda row: geodesic((lat, lon), (row["lat"], row["lon"])).km, axis=1)
     area_site_df = site_df.loc[site_distances <= radius]
     num_area_surveys = area_site_df["num_surveys"].sum()
-    area_species_freqs = defaultdict(float)
+    area_species_freqs: dict[str, float] = defaultdict(float)
     for _area_site_id, area_site_info in area_site_df.iterrows():
         for species_name, species_count in area_site_info["species_counts"].items():
             area_species_freqs[species_name] += species_count / num_area_surveys
     return dict(filtered_site_df=area_site_df, num_surveys=num_area_surveys, species_freqs=area_species_freqs)
 
 
-@st.experimental_singleton
-def load_resources(resources_path=DEFAULT_RESOURCES_PATH, local_species=False) -> tuple:
+@st.experimental_singleton  # type: ignore[misc]
+def load_resources(
+    resources_path: Path = DEFAULT_RESOURCES_PATH, local_species: bool = False
+) -> tuple[pd.DataFrame, pd.DataFrame, Learner]:
     """
     Load and cache all the static resources used by the streamlit app.
 
