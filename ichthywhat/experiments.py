@@ -14,7 +14,7 @@ from fastai.vision.augment import RandomResizedCrop, aug_transforms
 from fastai.vision.data import ImageBlock
 from fastai.vision.learner import cnn_learner
 from fastcore.basics import range_of
-from fastcore.foundation import L as fastcore_list
+from fastcore.foundation import L as fastcore_list  # noqa: N811
 
 
 class MLflowCallback(Callback):
@@ -26,7 +26,7 @@ class MLflowCallback(Callback):
         super().__init__(**kwargs)
         self.step = start_step
 
-    def after_epoch(self):
+    def after_epoch(self):  # noqa: D102
         self.step += 1
         mlflow.log_metrics(dict(zip(self.recorder.metric_names[1:], self.recorder.log[1:])), step=self.step)
 
@@ -59,7 +59,7 @@ def get_species_from_path(path: Path) -> str:
 
 def no_validation_splitter(items):
     """
-    A DataBlock splitter that uses all the data for training.
+    Split a DataBlock so that all the data is used for training.
 
     See notebooks/03-app.ipynb for a usage example.
     """

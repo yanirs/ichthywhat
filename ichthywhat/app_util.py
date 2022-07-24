@@ -9,6 +9,8 @@ import streamlit as st
 from fastai.learner import load_learner
 from geopy.distance import geodesic
 
+DEFAULT_RESOURCES_PATH = Path(__file__).parent.parent / "resources"
+
 
 def _load_species_df(path_or_url: typing.Union[str, Path]) -> pd.DataFrame:
     """
@@ -66,14 +68,14 @@ def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius
     area_site_df = site_df.loc[site_distances <= radius]
     num_area_surveys = area_site_df["num_surveys"].sum()
     area_species_freqs = defaultdict(float)
-    for area_site_id, area_site_info in area_site_df.iterrows():
+    for _area_site_id, area_site_info in area_site_df.iterrows():
         for species_name, species_count in area_site_info["species_counts"].items():
             area_species_freqs[species_name] += species_count / num_area_surveys
     return dict(filtered_site_df=area_site_df, num_surveys=num_area_surveys, species_freqs=area_species_freqs)
 
 
 @st.experimental_singleton
-def load_resources(resources_path=Path(__file__).parent.parent / "resources", local_species=False) -> tuple:
+def load_resources(resources_path=DEFAULT_RESOURCES_PATH, local_species=False) -> tuple:
     """
     Load and cache all the static resources used by the streamlit app.
 

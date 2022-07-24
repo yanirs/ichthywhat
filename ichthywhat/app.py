@@ -100,9 +100,9 @@ with st.expander("Location details"):
         st.caption(f"* Species observed in the area: {len(selected_area_info['species_freqs'])}")
         st.map(selected_area_info["filtered_site_df"], zoom=3)
     else:
-        st.caption(f"* Past area surveys: N/A")
-        st.caption(f"* Sites in the area: N/A")
-        st.caption(f"* Species observed in the area: N/A")
+        st.caption("* Past area surveys: N/A")
+        st.caption("* Sites in the area: N/A")
+        st.caption("* Species observed in the area: N/A")
 
 ########################
 # Tweak result display #
@@ -130,7 +130,7 @@ for file_index, uploaded_file in enumerate(uploaded_files):
     st.subheader(f":camera: Uploaded image #{file_index + 1}")
     st.caption(f"Filename: `{uploaded_file.name}`")
 
-    st.subheader(f":scissors: Cropped image for labelling")
+    st.subheader(":scissors: Cropped image for labelling")
     cropped_img = st_cropper(PILImage.create(uploaded_file), box_color="red")
     cropped_img_columns = st.columns(3)
     if dev_mode:

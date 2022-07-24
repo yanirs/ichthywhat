@@ -1,3 +1,5 @@
+"""Dataset handling functionality."""
+
 import shutil
 from collections import Counter
 from pathlib import Path
