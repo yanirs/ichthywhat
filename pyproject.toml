@@ -18,6 +18,12 @@ black = {extras = ["jupyter"], version = "^22.6.0"}
 defopt = "^6.1.0"
 pre-commit = "^2.20.0"
 
+[tool.poetry.scripts]
+ichthywhat = "ichthywhat:run_cli"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
