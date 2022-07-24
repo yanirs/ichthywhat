@@ -27,3 +27,8 @@ ichthywhat = "ichthywhat:run_cli"
 
 [tool.black]
 line-length = 120
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 120
