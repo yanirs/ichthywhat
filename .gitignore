@@ -121,6 +121,12 @@ dmypy.json
 # JetBrains
 .idea/
 
+# Vagrant
+.vagrant/
+
+# Scrap notebook
+notebooks/xx-scrap.ipynb
+
 # Default data directory
 data/
 

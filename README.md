@@ -1,5 +1,6 @@
-# deep-fish
-Experimenting with deep learning for fish ID.
+# Ichthy-what? Fishy photo ID
+
+Experimenting with deep learning for fish identification with Reef Life Survey data.
 
 ## Setup
 
@@ -13,16 +14,20 @@ Install pre-commit hooks:
 
     $ poetry run pre-commit install
 
+Alternatively, install [Vagrant](https://www.vagrantup.com/) and run everything in a virtual machine:
+
+    $ vagrant up
+
 ## Fish ID app
 
 Run via streamlit in local development mode (run on save, use local species images, and expose beta features &ndash; the
 `ichthywhat.localhost` address is needed for the Mapbox API to work and a mapping should exist in `/etc/hosts`):
 
-    $ poetry run streamlit run --browser.serverAddress ichthywhat.localhost --server.runOnSave true app.py -- dev /path/to/img/root
+    $ poetry run streamlit run --browser.serverAddress ichthywhat.localhost --server.runOnSave true ichthywhat/app.py -- dev /path/to/img/root
 
 Run via streamlit in production mode:
 
-    $ poetry run streamlit run app.py
+    $ poetry run streamlit run ichthywhat/app.py
 
 Build a new model by running the code in `notebooks/03-app.ipynb`.
 
