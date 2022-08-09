@@ -76,17 +76,19 @@ def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius
 
 @st.experimental_singleton  # type: ignore[misc]
 def load_resources(
-    resources_path: Path = DEFAULT_RESOURCES_PATH, local_species: bool = False
+    resources_path: Path = DEFAULT_RESOURCES_PATH, local_jsons: bool = False
 ) -> tuple[pd.DataFrame, pd.DataFrame, Learner]:
     """
     Load and cache all the static resources used by the streamlit app.
 
     :param resources_path: path of the resource directory.
-    :param local_species: if True, append `/local` when loading the species DataFrame.
+    :param local_jsons: if True, append `/local` when loading the survey & species DataFrames.
 
     :return: a tuple of three items: the species DataFrame, the site DataFrame, and the prediction model.
     """
-    species_df = _load_species_df((resources_path / "local" if local_species else resources_path) / "api-species.json")
-    site_df = _load_site_df(resources_path / "api-site-surveys.json", species_df)
     model = load_learner(resources_path / "model.pkl")
+    if local_jsons:
+        resources_path /= "local"
+    species_df = _load_species_df(resources_path / "api-species.json")
+    site_df = _load_site_df(resources_path / "api-site-surveys.json", species_df)
     return species_df, site_df, model

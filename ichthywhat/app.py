@@ -35,7 +35,7 @@ else:
 # Load data and models #
 ########################
 
-species_df, site_df, model = load_resources(local_species=dev_mode)
+species_df, site_df, model = load_resources(local_jsons=dev_mode)
 
 ########################################
 # Show instructions and collect inputs #
