@@ -2,10 +2,10 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/focal64"
+  config.vm.box = "ubuntu/jammy64"
 
   config.vm.provider "virtualbox" do |vb|
-    vb.memory = "2048"
+    vb.memory = "4096"
   end
 
   # Streamlit default port
@@ -25,19 +25,14 @@ Vagrant.configure("2") do |config|
       libreadline-dev \
       libsqlite3-dev \
       libssl-dev \
+      python3-pip \
       zlib1g-dev
   SHELL
 
-  config.vm.provision "shell", name: "pyenv", privileged: false, inline: <<-SHELL
-    curl -L https://raw.githubusercontent.com/pyenv/pyenv-installer/49fba599e872bc761858ea6f700271fb6dcb5a97/bin/pyenv-installer | bash
-    echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.profile
-    echo 'eval "$(pyenv init -)"' >> ~/.profile
-  SHELL
-
-  config.vm.provision "shell", name: "python & poetry env", privileged: false, inline: <<-SHELL
+  config.vm.provision "shell", name: "poetry env", privileged: false, inline: <<-SHELL
+    set -e
     cd /vagrant
-    pyenv install
-    pip install poetry==1.1.14
+    pip install poetry==1.4.1
     poetry install
     echo "Running the CLI to verify everything works"
     poetry run ichthywhat --help
