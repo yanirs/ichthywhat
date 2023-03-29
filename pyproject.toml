@@ -9,17 +9,17 @@ description = "Ichthy-what? Fishy photo ID with Reef Life Survey data"
 authors = ["Yanir Seroussi <rls@yanirseroussi.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-fastai = "^2.5.6"
-geopy = "^2.2.0"
-mlflow = "^1.21.1"
-streamlit = "^1.8.1"
-streamlit-cropper = "^0.2.0"
+python = "~=3.10"
+fastai = "~=2.7"
+geopy = "~=2.3"
+mlflow = "~=1.30"
+streamlit = "~=1.12"
+streamlit-cropper = "~=0.2"
 
 [tool.poetry.dev-dependencies]
-jupyter = "^1.0.0"
-defopt = "^6.1.0"
-pre-commit = "^2.20.0"
+jupyter = "~=1.0"
+defopt = "~=6.4"
+pre-commit = "~=2.21"
 
 [tool.poetry.scripts]
 ichthywhat = "ichthywhat:run_cli"

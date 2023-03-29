@@ -49,7 +49,7 @@ def _load_site_df(path_or_url: typing.Union[str, Path], species_df: pd.DataFrame
     return site_df
 
 
-@st.experimental_memo(max_entries=5)  # type: ignore[misc]
+@st.cache_data(max_entries=5)  # type: ignore[misc]
 def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius: float) -> dict[str, typing.Any]:
     """
     Get information about the selected area.
@@ -74,7 +74,7 @@ def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius
     return dict(filtered_site_df=area_site_df, num_surveys=num_area_surveys, species_freqs=area_species_freqs)
 
 
-@st.experimental_singleton  # type: ignore[misc]
+@st.cache_resource  # type: ignore[misc]
 def load_resources(
     resources_path: Path = DEFAULT_RESOURCES_PATH, local_jsons: bool = False
 ) -> tuple[pd.DataFrame, pd.DataFrame, Learner]:
