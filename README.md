@@ -4,7 +4,7 @@ Experimenting with deep learning for fish identification with Reef Life Survey d
 
 ## Setup
 
-Prerequisites: Set up Python 3.9 (e.g., with [pyenv](https://github.com/pyenv/pyenv)) and [Poetry](https://python-poetry.org/).
+Prerequisites: Set up Python 3.10 (e.g., with [pyenv](https://github.com/pyenv/pyenv)) and [Poetry](https://python-poetry.org/).
 
 Set up the Poetry environment:
 

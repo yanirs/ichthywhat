@@ -24,12 +24,11 @@ about_text = """
     [Reef Life Survey contact form](https://reeflifesurvey.com/contact/).
 """
 page_menu_items = {"Get help": None, "Report a Bug": "https://reeflifesurvey.com/contact/", "About": about_text}
-if dev_mode:
-    st.set_page_config(
-        page_title="[Dev] Ichthy-what? Fishy photo ID", page_icon=":tropical_fish:", menu_items=page_menu_items
-    )
-else:
-    st.set_page_config(page_title="Ichthy-what? Fishy photo ID", page_icon=":fish:", menu_items=page_menu_items)
+st.set_page_config(
+    page_title=("[Dev] " if dev_mode else "") + "Ichthy-what? Fishy photo ID",
+    page_icon=":tropical_fish:" if dev_mode else ":fish:",
+    menu_items=page_menu_items,
+)
 
 ########################
 # Load data and models #
