@@ -17,16 +17,6 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Set up cache
-        uses: actions/cache@v3
-        id: cache
-        with:
-          path: |
-            .venv
-            ~/.poetry
-            ~/.cache
-          key: venv-${{ hashFiles('poetry.lock', '.pre-commit-config.yaml') }}
-
       - name: Install poetry
         run: |
           pip install poetry
