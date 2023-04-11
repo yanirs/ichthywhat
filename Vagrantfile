@@ -8,8 +8,10 @@ Vagrant.configure("2") do |config|
     vb.memory = "4096"
   end
 
+  # FastAPI default port
+  config.vm.network "forwarded_port", guest: 8000, host: 9300, host_ip: "127.0.0.1"
   # Streamlit default port
-  config.vm.network "forwarded_port", guest: 8501, host: 8501
+  config.vm.network "forwarded_port", guest: 8501, host: 9301, host_ip: "127.0.0.1"
 
   # Image parent path (see README.md; disabled by default)
   config.vm.synced_folder "/path/to/img", "/ichthywhat-pics/img", type: "rsync", disabled: true
@@ -38,9 +40,12 @@ Vagrant.configure("2") do |config|
     poetry run ichthywhat --help
   SHELL
 
-  config.vm.provision "shell", name: "run dev server", privileged: false, run: "always", inline: <<-SHELL
-    echo "Running the Streamlit app in a screen. Open http://localhost:8501/ to view it."
-    echo "In 'vagrant ssh', run 'screen -r' to attach to the screen and view the app's log."
-    screen -dm bash -c "cd /vagrant && poetry run streamlit run ichthywhat/app.py"
+  config.vm.provision "shell", name: "run servers", privileged: false, run: "always", inline: <<-SHELL
+    echo "Running the FastAPI & Streamlit apps in screens"
+    echo "FastAPI is on http://localhost:9300/ and Streamlit is on http://localhost:9301/"
+    echo "In 'vagrant ssh', attach with 'screen -r api' or 'screen -r streamlit'"
+    cd /vagrant
+    screen -dmS api bash -c "poetry run uvicorn --reload --host 0.0.0.0 ichthywhat.api:api"
+    screen -dmS streamlit bash -c "poetry run streamlit run ichthywhat/app.py"
   SHELL
 end
