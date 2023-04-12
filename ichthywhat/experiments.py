@@ -2,7 +2,10 @@
 import typing
 from pathlib import Path
 
-import mlflow
+try:
+    import mlflow
+except ImportError:
+    pass  # Fail silently because we don't need mlflow when running only inference.
 from fastai.callback.core import Callback
 from fastai.callback.mixup import MixUp
 from fastai.data.block import CategoryBlock, DataBlock
