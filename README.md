@@ -18,7 +18,7 @@ Alternatively, install [Vagrant](https://www.vagrantup.com/) and run everything 
 
     $ vagrant up
 
-## Fish ID app
+## Fish ID Streamlit app
 
 Run via streamlit in local development mode (run on save, use local species images, and expose beta features &ndash; the
 `ichthywhat.localhost` address is needed for the Mapbox API to work and a mapping should exist in `/etc/hosts`):
@@ -30,6 +30,25 @@ Run via streamlit in production mode:
     $ poetry run streamlit run ichthywhat/app.py
 
 Build a new model by running the code in `notebooks/03-app.ipynb`.
+
+## Fish ID classification API
+
+The Vagrant machine exposes a simple classification API. With the machine running, call:
+
+    $ curl -X POST -F "img_file=@data/demo/P6204455.JPG" \
+        http://localhost:9300/predict | jq
+
+This API is also packaged in a Dockerfile, which can be built on the Vagrant machine:
+
+    $ podman build -t ichthywhat .
+    $ podman run -p 8000:8000 localhost/ichthywhat:latest
+
+And exported elsewhere:
+
+    $ podman save localhost/ichthywhat:latest | gzip > ichthywhat-img.tar.gz
+    ... on another machine, e.g., running docker ...
+    $ docker load --input ichthywhat-img.tar.gz
+    $ docker run -p 127.0.0.1:8000:8000 localhost/ichthywhat:latest
 
 ## Jupyter notebooks used for experimentation and model building
 

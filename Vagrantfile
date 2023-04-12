@@ -27,6 +27,7 @@ Vagrant.configure("2") do |config|
       libreadline-dev \
       libsqlite3-dev \
       libssl-dev \
+      podman \
       python3-pip \
       zlib1g-dev
   SHELL
