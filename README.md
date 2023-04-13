@@ -41,12 +41,17 @@ The Vagrant machine exposes a simple classification API. With the machine runnin
 This API is also packaged in a Dockerfile, which can be built on the Vagrant machine:
 
     $ podman build -t ichthywhat .
-    $ podman run -p 8000:8000 localhost/ichthywhat:latest
 
-And exported elsewhere:
+...and run with the default port exposed to the host:
+
+    $ podman run --env UVICORN_HOST=0.0.0.0 -p 8000:8000 localhost/ichthywhat:latest
+
+...and exported elsewhere:
 
     $ podman save localhost/ichthywhat:latest | gzip > ichthywhat-img.tar.gz
-    ... on another machine, e.g., running docker ...
+
+...then on another machine that has Docker, perhaps with a local proxy:
+
     $ docker load --input ichthywhat-img.tar.gz
     $ docker run -p 127.0.0.1:8000:8000 localhost/ichthywhat:latest
 

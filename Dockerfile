@@ -3,8 +3,8 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # TODO: figure out what's a good setting for uid/gid
-ARG UID=1000
-ARG GID=1000
+ARG UID=1100
+ARG GID=1100
 RUN groupadd -g "${GID}" python && \
     useradd --create-home --no-log-init -u "${UID}" -g "${GID}" python
 USER python
@@ -26,4 +26,8 @@ COPY --chown=python:python ichthywhat/ ./ichthywhat/
 COPY --chown=python:python resources/model.pkl ./resources/model.pkl
 
 EXPOSE 8000
-CMD ["uvicorn", "--host", "0.0.0.0", "ichthywhat.api:api"]
+# Default number of workers.
+ENV WEB_CONCURRENCY=1
+# Set to 0.0.0.0 to allow access from the outside world.
+ENV UVICORN_HOST="127.0.0.1"
+CMD exec uvicorn --host "$UVICORN_HOST" ichthywhat.api:api
