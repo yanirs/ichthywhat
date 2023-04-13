@@ -5,11 +5,26 @@ import pandas as pd
 from fastai.learner import load_learner
 from fastai.vision.core import PILImage
 from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
 from ichthywhat.constants import DEFAULT_RESOURCES_PATH
 
 api = FastAPI()
+# TODO: make this more restrictive
+api.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 _model = load_learner(DEFAULT_RESOURCES_PATH / "model.pkl")
+
+
+@api.get("/")
+async def home() -> str:
+    """Trivial homepage that serves as a health check."""
+    return "Hello!"
 
 
 @api.post("/predict")
