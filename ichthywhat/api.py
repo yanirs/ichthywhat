@@ -1,4 +1,5 @@
 """Basic classification API."""
+import os
 from io import BytesIO
 
 import pandas as pd
@@ -11,10 +12,9 @@ from starlette.responses import HTMLResponse
 from ichthywhat.constants import DEFAULT_RESOURCES_PATH
 
 api = FastAPI()
-# TODO: make this more restrictive
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("ICHTHYWHAT_API_ALLOW_ORIGINS", "").split(",") or ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

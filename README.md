@@ -56,6 +56,8 @@ This API is also packaged in a Dockerfile, which can be built on the Vagrant mac
     $ docker load --input ichthywhat-img.tar.gz
     $ docker run -p 127.0.0.1:8000:8000 localhost/ichthywhat:latest
 
+See the ARG and ENV calls in the Dockerfile for customisation options.
+
 ## Jupyter notebooks used for experimentation and model building
 
     $ poetry run jupyter notebook

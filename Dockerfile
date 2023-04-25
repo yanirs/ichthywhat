@@ -2,7 +2,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# TODO: figure out what's a good setting for uid/gid
+# This uid/gid may not exist on the host. Change if needed.
 ARG UID=1100
 ARG GID=1100
 RUN groupadd -g "${GID}" python && \
@@ -30,4 +30,6 @@ EXPOSE 8000
 ENV WEB_CONCURRENCY=1
 # Set to 0.0.0.0 to allow access from the outside world.
 ENV UVICORN_HOST="127.0.0.1"
+# Override to restrict origins if needed.
+ENV ICHTHYWHAT_API_ALLOW_ORIGINS="*"
 CMD exec uvicorn --host "$UVICORN_HOST" ichthywhat.api:api
