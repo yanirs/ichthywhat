@@ -35,8 +35,9 @@ Build a new model by running the code in `notebooks/03-app.ipynb`.
 
 The Vagrant machine exposes a simple classification API. With the machine running, call:
 
-    $ curl -X POST -F "img_file=@data/demo/P6204455.JPG" \
-        http://localhost:9300/predict | jq
+    $ curl -X POST -F "img_file=@image-file-path.jpg" http://localhost:9300/predict | jq
+
+Alternatively, visit http://localhost:9300/demo for a simple demo page.
 
 This API is also packaged in a Dockerfile, which can be built on the Vagrant machine:
 
