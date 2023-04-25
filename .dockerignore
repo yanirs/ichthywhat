@@ -1,0 +1,8 @@
+# Start by ignoring everything, then allow just the directoies & files we want.
+# Then, ignore stuff that may be under the directories we want to keep.
+*
+
+!ichthywhat/
+!resources/model.pkl
+
+**/__pycache__/

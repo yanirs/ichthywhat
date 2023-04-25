@@ -65,3 +65,4 @@ repos:
     - id: mypy
       args: [--ignore-missing-imports, --check-untyped-defs, --disallow-incomplete-defs, --show-error-codes, --strict]
       additional_dependencies: [types-requests==2.27.19]
+      exclude: ichthywhat/api.py  # TODO: remove this

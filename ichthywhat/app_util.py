@@ -9,7 +9,7 @@ import streamlit as st
 from fastai.learner import Learner, load_learner
 from geopy.distance import geodesic
 
-DEFAULT_RESOURCES_PATH = Path(__file__).parent.parent / "resources"
+from .constants import DEFAULT_RESOURCES_PATH
 
 
 def _load_species_df(path_or_url: typing.Union[str, Path]) -> pd.DataFrame:
