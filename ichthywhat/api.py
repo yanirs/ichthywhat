@@ -30,21 +30,21 @@ _DEMO_HTML = """
   </head>
   <body>
     <h1>Ichthywhat: Prediction API Demo</h1>
-    
+
     <label for="api-url">API URL</label>
     <input type="url" id="api-url" value="/predict"><br>
 
     <label for="file-input">Image</label>
     <input type="file" id="file-input">
     <button type="button" onclick="uploadImage()">Upload</button>
-    
-    <p id="output"></p>
-    
+
+    <pre id="output"></pre>
+
     <script>
       function updateOutput(text) {
         document.getElementById('output').innerHTML = text;
       }
-    
+
       function uploadImage() {
         updateOutput('Loading...');
         const formData = new FormData();
@@ -54,7 +54,7 @@ _DEMO_HTML = """
           body: formData
         })
         .then(response => response.json())
-        .then(data => updateOutput(JSON.stringify(data)))
+        .then(data => updateOutput(JSON.stringify(data, null, 2)))
         .catch(error => updateOutput(error));
       }
     </script>
