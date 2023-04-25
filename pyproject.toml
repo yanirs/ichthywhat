@@ -6,7 +6,10 @@ build-backend = "poetry.core.masonry.api"
 name = "ichthywhat"
 version = "1.0.0"
 description = "Ichthy-what? Fishy photo ID with Reef Life Survey data"
+license = "MIT"
 authors = ["Yanir Seroussi <rls@yanirseroussi.com>"]
+readme = "README.md"
+repository = "https://github.com/yanirs/ichthywhat"
 
 [tool.poetry.dependencies]
 python = "~=3.10"
@@ -19,18 +22,56 @@ fastapi = "~=0.95.0"
 uvicorn = "~=0.21.1"
 python-multipart = "~=0.0.6"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 jupyter = "~=1.0"
 defopt = "~=6.4"
 pre-commit = "~=2.21"
+mypy = "~=1.2"
 
 [tool.poetry.scripts]
 ichthywhat = "ichthywhat:run_cli"
 
-[tool.black]
-line-length = 120
+[tool.ruff]
+select = [
+  "A",  # flake8-builtins
+  "ARG",  # flake8-unused-arguments
+  "B",  # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "D",  # pydocstyle
+  "DTZ",  # flake8-datetimez
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "G",  # flake8-logging-format
+  "I",  # isort
+  "ICN",  # flake8-import-conventions
+  "INP",  # flake8-no-pep420
+  "ISC",  # flake8-implicit-str-concat
+  "N",  # pep8-naming
+  "NPY",  # NumPy-specific rules
+  "PD",  # pandas-vet
+  "PIE",  # flake8-pie
+  "PT",  # flake8-pytest-style
+  "PTH",  # flake8-use-pathlib
+  "RET",  # flake8-return
+  "RUF",  # Ruff-specific rules
+  "S",  # flake8-bandit
+  "SIM",  # flake8-simplify
+  "UP",  # pyupgrade
+  "YTT",  # flake8-2020
+]
+ignore = [
+  "C408",  # unnecessary-collection-call
+  "D203",  # one-blank-line-before-class
+  "D212",  # multi-line-summary-first-line
+  "PD002",  # pandas-use-of-inplace-argument
+  "RUF001",  # ambiguous-unicode-character-string
+  "S101",  # assert
+]
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-line_length = 120
+[tool.mypy]
+check_untyped_defs = true
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+strict = true
+
