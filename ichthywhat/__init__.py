@@ -7,9 +7,17 @@ def run_cli() -> None:
 
     import defopt
 
-    from .datasets import create_rls_genus_dataset, create_rls_species_dataset, create_test_dataset
+    from ichthywhat.datasets import (
+        create_rls_genus_dataset,
+        create_rls_species_dataset,
+        create_test_dataset,
+    )
 
     logging.basicConfig(
-        format="%(asctime)s [%(name)s.%(funcName)s:%(lineno)d] %(levelname)s: %(message)s", level=logging.INFO
+        format="%(asctime)s [%(name)s.%(funcName)s:%(lineno)d] %(levelname)s: "
+        "%(message)s",
+        level=logging.INFO,
     )
-    defopt.run([create_rls_genus_dataset, create_rls_species_dataset, create_test_dataset])
+    defopt.run(
+        [create_rls_genus_dataset, create_rls_species_dataset, create_test_dataset]
+    )

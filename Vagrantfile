@@ -27,16 +27,20 @@ Vagrant.configure("2") do |config|
       libreadline-dev \
       libsqlite3-dev \
       libssl-dev \
+      pipx \
       podman \
-      python3-pip \
       zlib1g-dev
   SHELL
 
-  config.vm.provision "shell", name: "poetry env", privileged: false, inline: <<-SHELL
+  config.vm.provision "shell", name: "poetry", privileged: false, inline: <<-SHELL
+    pipx install poetry==1.4.2
+  SHELL
+
+  config.vm.provision "shell", name: "python dependencies", privileged: false, inline: <<-SHELL
     set -e
     cd /vagrant
-    pip install poetry==1.4.1
     poetry install
+    poetry run pre-commit install
     echo "Running the CLI to verify everything works"
     poetry run ichthywhat --help
   SHELL
