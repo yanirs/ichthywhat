@@ -9,7 +9,7 @@ import streamlit as st
 from fastai.learner import Learner, load_learner
 from geopy.distance import geodesic
 
-from .constants import DEFAULT_RESOURCES_PATH
+from ichthywhat.constants import DEFAULT_RESOURCES_PATH
 
 
 def _load_species_df(path_or_url: str | Path) -> pd.DataFrame:

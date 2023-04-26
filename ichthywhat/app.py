@@ -4,9 +4,10 @@ import sys
 
 import pandas as pd
 import streamlit as st
-from app_util import get_selected_area_info, load_resources
 from fastai.vision.core import PILImage
 from streamlit_cropper import st_cropper
+
+from ichthywhat.app_util import get_selected_area_info, load_resources
 
 ###################################
 # Page config: Must be at the top #
@@ -126,7 +127,7 @@ else:
 with st.expander("Location details"):
     st.caption(
         "* Past site surveys: "
-        + ("N/A" if selected_site_info.empty else selected_site_info["num_surveys"])
+        + str("N/A" if selected_site_info.empty else selected_site_info["num_surveys"])
     )
     if selected_area_info:
         st.caption(f"* Past area surveys: {selected_area_info['num_surveys']}")

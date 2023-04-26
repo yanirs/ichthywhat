@@ -7,7 +7,7 @@ def run_cli() -> None:
 
     import defopt
 
-    from .datasets import (
+    from ichthywhat.datasets import (
         create_rls_genus_dataset,
         create_rls_species_dataset,
         create_test_dataset,
