@@ -1,11 +1,11 @@
 """Assorted experiment utilities."""
+import contextlib
 import typing
 from pathlib import Path
 
-try:
+# Fail silently because we don't need mlflow when running only inference.
+with contextlib.suppress(ImportError):
     import mlflow
-except ImportError:
-    pass  # Fail silently because we don't need mlflow when running only inference.
 from fastai.callback.core import Callback
 from fastai.callback.mixup import MixUp
 from fastai.data.block import CategoryBlock, DataBlock
@@ -25,13 +25,18 @@ class MLflowCallback(Callback):  # type: ignore[misc]
 
     run_after = Recorder
 
-    def __init__(self, start_step: int = 0, **kwargs: typing.Any):
+    def __init__(self, start_step: int = 0, **kwargs: typing.Any):  # noqa: D107
         super().__init__(**kwargs)
         self.step = start_step
 
     def after_epoch(self) -> None:  # noqa: D102
         self.step += 1
-        mlflow.log_metrics(dict(zip(self.recorder.metric_names[1:], self.recorder.log[1:])), step=self.step)
+        mlflow.log_metrics(
+            dict(
+                zip(self.recorder.metric_names[1:], self.recorder.log[1:], strict=True)
+            ),
+            step=self.step,
+        )
 
 
 def top_3_accuracy(inp: typing.Sequence[float], targ: typing.Sequence[float]) -> float:
@@ -49,14 +54,15 @@ def delete_run_with_children(parent_run_id: str) -> None:
     client = mlflow.tracking.client.MlflowClient()
     parent_run = client.get_run(parent_run_id)
     for child_run in client.search_runs(
-        experiment_ids=[parent_run.info.experiment_id], filter_string=f"tags.`mlflow.parentRunId` = '{parent_run_id}'"
+        experiment_ids=[parent_run.info.experiment_id],
+        filter_string=f"tags.`mlflow.parentRunId` = '{parent_run_id}'",
     ):
         client.delete_run(child_run.info.run_id)
     client.delete_run(parent_run_id)
 
 
 def get_species_from_path(path: Path) -> str:
-    """Get the species name from a path, assuming that the file is named `<genus>-<taxon>-.*`."""
+    """Get the species name from path, assuming that it's named `<genus>-<taxon>-.*`."""
     return " ".join(path.name.split("-")[:2]).capitalize()
 
 
@@ -72,9 +78,9 @@ def no_validation_splitter(items: typing.Sequence[typing.Any]) -> fastcore_list:
 def create_reproducible_learner(
     arch: typing.Any,
     dataset_path: Path,
-    db_kwargs: typing.Optional[dict[str, typing.Any]] = None,
-    dls_kwargs: typing.Optional[dict[str, typing.Any]] = None,
-    learner_kwargs: typing.Optional[dict[str, typing.Any]] = None,
+    db_kwargs: dict[str, typing.Any] | None = None,
+    dls_kwargs: dict[str, typing.Any] | None = None,
+    learner_kwargs: dict[str, typing.Any] | None = None,
 ) -> Learner:
     """
     Create a learner that should yield reproducible results across runs.
@@ -104,7 +110,13 @@ def create_reproducible_learner(
     return cnn_learner(
         dls,
         arch,
-        **{**dict(metrics=[accuracy, top_3_accuracy, top_10_accuracy], cbs=MLflowCallback()), **(learner_kwargs or {})},
+        **{
+            **dict(
+                metrics=[accuracy, top_3_accuracy, top_10_accuracy],
+                cbs=MLflowCallback(),
+            ),
+            **(learner_kwargs or {}),
+        },
     )
 
 
@@ -118,18 +130,23 @@ def get_learner_metrics_with_tta(
     learner: Learner, tta_prefix: str = "", **tta_kwargs: dict[str, typing.Any]
 ) -> dict[str, float]:
     """
-    Use test-time augmentation (TTA) to calculate the learner's metrics on the validation set.
+    Use test-time augmentation to calculate the learner's metrics on the validation set.
 
     :param learner: The learner.
-    :param tta_prefix: prefix to set on the TTA metrics. If the default empty string is used, the TTA metrics may
-                       overwrite non-TTA metrics.
+    :param tta_prefix: prefix to set on the TTA metrics. If the default empty string is
+                       used, the TTA metrics may overwrite non-TTA metrics.
     :param tta_kwargs: kwargs to pass to `learner.tta()`.
     :return: dict mapping metric names to their values, including TTA metrics
     """
     set_seed(13, reproducible=True)
-    metric_values = dict(zip(learner.recorder.metric_names[1:-1], learner.recorder.log[1:-1]))
+    metric_values = dict(
+        zip(
+            learner.recorder.metric_names[1:-1], learner.recorder.log[1:-1], strict=True
+        )
+    )
     with learner.no_bar(), learner.no_logging():
-        # Temporarily remove the logging callbacks because before_epoch() is called by learner.tta() as a side effect.
+        # Temporarily remove the logging callbacks because before_epoch() is called by
+        # learner.tta() as a side effect.
         removed_cbs = _remove_cbs_of_types(learner, [MLflowCallback, Recorder])
         preds, targs = learner.tta(**tta_kwargs)
         learner.add_cbs(removed_cbs)
@@ -147,14 +164,18 @@ def run_lr_find_experiment(
     disable_mlflow: bool = False,
 ) -> None:
     """
-    Run a learning rate finder experiment: Initial fine tuning, then a series of learning rate finds.
+    Run a learning rate finder experiment.
+
+    This includes initial fine tuning, then a series of learning rate finds.
 
     :param learner: The learner to run the experiment on.
     :param num_epochs_between_finds: The number of epochs between learning rate finds.
     :param num_finds: The number of learning rate finds to run.
-    :param suggestion_method: The method to use for suggesting the learning rate (one of `SuggestionMethod.*`).
+    :param suggestion_method: The method to use for suggesting the learning rate
+                              (one of `SuggestionMethod.*`).
     :param show_plot: If true, show the learning rate finder plot on every find.
-    :param disable_mlflow: If true, disable mlflow tracking by not adding back the MLflowCallback after each lr_find().
+    :param disable_mlflow: If true, disable mlflow tracking by not adding back the
+                           MLflowCallback after each lr_find().
     """
     if not disable_mlflow:
         mlflow.log_param("num_epochs_between_finds", num_epochs_between_finds)
@@ -164,11 +185,13 @@ def run_lr_find_experiment(
     learner.fine_tune(num_epochs_between_finds)
     for i in range(num_finds):
         learner.remove_cb(MLflowCallback)
-        # See https://github.com/fastai/fastai/issues/3239: Need to remove the MixUp callback (and potentially others)
-        # to avoid errors.
+        # See https://github.com/fastai/fastai/issues/3239: Need to remove the MixUp
+        # callback (and potentially others) to avoid errors.
         removed_cbs = _remove_cbs_of_types(learner, [MixUp])
 
-        suggestions = learner.lr_find(suggest_funcs=[suggestion_method], show_plot=show_plot)
+        suggestions = learner.lr_find(
+            suggest_funcs=[suggestion_method], show_plot=show_plot
+        )
         next_lr = getattr(suggestions, suggestion_method.__name__)
         print(f"Next learning rate: {next_lr:.6f}")
 
@@ -176,9 +199,10 @@ def run_lr_find_experiment(
             learner.add_cb(MLflowCallback(run_name_prefix=f"after find {i} - "))
         learner.add_cbs(removed_cbs)
 
-        # TODO: This may be wrong -- we don't actually use the next_lr in all iterations because fit_one_cycle() has a
-        # TODO: cyclical learning rate. It may be better to use fit() directly.
-        # TODO: It's also wrong to remove the MixUp callback because then we get loss estimates that ignore its effect.
+        # TODO: This may be wrong -- we don't actually use the next_lr in all iterations
+        # TODO: because fit_one_cycle() has a cyclical learning rate. It may be better
+        # TODO: to use fit() directly. It's also wrong to remove the MixUp callback
+        # TODO: because then we get loss estimates that ignore its effect.
         learner.fit_one_cycle(num_epochs_between_finds, next_lr)
 
 
@@ -194,7 +218,7 @@ def test_learner(
     :param learner: The learner to test.
     :param image_paths: The paths to the images to test.
     :param labels: The labels for the images.
-    :param show_grid: The number of rows and columns to visualize, or None to show nothing.
+    :param show_grid: The number of rows and columns to visualize; None to show nothing.
 
     :return: Mapping from top_k_accuracy metric name to its value.
     """
@@ -210,10 +234,14 @@ def test_learner(
             test_dl.show_batch(show=False)[0],
             labels,
             preds,
+            strict=True,
         ):
             show_image(img, ctx=ax)
             pred_label = learner.dls.vocab[pred.argmax()]
             ax.set_title(f"[Actual] {label}\n[Predicted] {pred_label}")
         plt.tight_layout()
 
-    return {f"top_{k}_accuracy": top_k_accuracy(preds, label_codes, k).item() for k in (1, 3, 10)}
+    return {
+        f"top_{k}_accuracy": top_k_accuracy(preds, label_codes, k).item()
+        for k in (1, 3, 10)
+    }

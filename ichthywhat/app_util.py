@@ -12,9 +12,9 @@ from geopy.distance import geodesic
 from .constants import DEFAULT_RESOURCES_PATH
 
 
-def _load_species_df(path_or_url: typing.Union[str, Path]) -> pd.DataFrame:
+def _load_species_df(path_or_url: str | Path) -> pd.DataFrame:
     """
-    Load the species DataFrame from the JSON used for other RLS tools (Frequency Explorer & Flashcards).
+    Load the species DataFrame from the JSON used for other RLS tools.
 
     :param path_or_url: local path or URL of the JSON.
 
@@ -28,18 +28,27 @@ def _load_species_df(path_or_url: typing.Union[str, Path]) -> pd.DataFrame:
     return species_df
 
 
-def _load_site_df(path_or_url: typing.Union[str, Path], species_df: pd.DataFrame) -> pd.DataFrame:
+def _load_site_df(path_or_url: str | Path, species_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Load the site DataFrame from the JSON used for other RLS tools (Frequency Explorer & Flashcards).
+    Load the site DataFrame from the JSON used for other RLS tools.
 
     :param path_or_url: local path or URL of the JSON.
     :param species_df: the species DataFrame, as returned from load_species_df().
 
-    :return: the site DataFrame, with the 'species_counts' keys converted from IDs to species names.
+    :return: the site DataFrame, with the 'species_counts' keys converted from IDs to
+             species names.
     """
     site_df = pd.read_json(path_or_url, orient="index")
     site_df.index.name = "site"
-    site_df.columns = ["realm", "ecoregion", "name", "lon", "lat", "num_surveys", "species_counts"]
+    site_df.columns = [
+        "realm",
+        "ecoregion",
+        "name",
+        "lon",
+        "lat",
+        "num_surveys",
+        "species_counts",
+    ]
     site_df["species_counts"] = site_df["species_counts"].map(
         lambda species_counts: {
             species_df.loc[int(species_id)]["name"]: species_count
@@ -50,7 +59,9 @@ def _load_site_df(path_or_url: typing.Union[str, Path], species_df: pd.DataFrame
 
 
 @st.cache_data(max_entries=5)  # type: ignore[misc]
-def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius: float) -> dict[str, typing.Any]:
+def get_selected_area_info(
+    site_df: pd.DataFrame, lat: float, lon: float, radius: float
+) -> dict[str, typing.Any]:
     """
     Get information about the selected area.
 
@@ -60,18 +71,26 @@ def get_selected_area_info(site_df: pd.DataFrame, lat: float, lon: float, radius
     :param radius: the radius of the selected area in kilometers.
 
     :return: a dictionary with the following keys and values:
-      * 'filtered_site_df': `site_df`, filtered to only include sites within `radius` kilometers from `lat` & `lon`.
+      * 'filtered_site_df': `site_df`, filtered to only include sites within `radius`
+        kilometers from `lat` & `lon`.
       * 'num_surveys': the total number of surveys in the selected area.
-      * 'species_freqs': a dictionary mapping species names to their frequencies in the selected area.
+      * 'species_freqs': a dictionary mapping species names to their frequencies in the
+        selected area.
     """
-    site_distances = site_df.apply(lambda row: geodesic((lat, lon), (row["lat"], row["lon"])).km, axis=1)
+    site_distances = site_df.apply(
+        lambda row: geodesic((lat, lon), (row["lat"], row["lon"])).km, axis=1
+    )
     area_site_df = site_df.loc[site_distances <= radius]
     num_area_surveys = area_site_df["num_surveys"].sum()
     area_species_freqs: dict[str, float] = defaultdict(float)
     for _area_site_id, area_site_info in area_site_df.iterrows():
         for species_name, species_count in area_site_info["species_counts"].items():
             area_species_freqs[species_name] += species_count / num_area_surveys
-    return dict(filtered_site_df=area_site_df, num_surveys=num_area_surveys, species_freqs=area_species_freqs)
+    return dict(
+        filtered_site_df=area_site_df,
+        num_surveys=num_area_surveys,
+        species_freqs=area_species_freqs,
+    )
 
 
 @st.cache_resource  # type: ignore[misc]
@@ -82,9 +101,11 @@ def load_resources(
     Load and cache all the static resources used by the streamlit app.
 
     :param resources_path: path of the resource directory.
-    :param local_jsons: if True, append `/local` when loading the survey & species DataFrames.
+    :param local_jsons: if True, append `/local` when loading the survey & species
+                        DataFrames.
 
-    :return: a tuple of three items: the species DataFrame, the site DataFrame, and the prediction model.
+    :return: a tuple of three items: the species DataFrame, the site DataFrame, and the
+             prediction model.
     """
     model = load_learner(resources_path / "model.pkl")
     if local_jsons:
