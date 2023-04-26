@@ -80,7 +80,7 @@ async def predict(img_file: UploadFile = File(...)) -> dict[str, float]:  # noqa
     """Return a mapping from species name to score, based on the given image."""
     image = PILImage.create(BytesIO(await img_file.read()))
     scores = _model.predict(image)[2]
-    return (
+    return (  # type: ignore[no-any-return]
         pd.Series(data=scores, index=_model.dls.vocab)
         .sort_values(ascending=False)
         .to_dict()

@@ -58,7 +58,7 @@ def _load_site_df(path_or_url: str | Path, species_df: pd.DataFrame) -> pd.DataF
     return site_df
 
 
-@st.cache_data(max_entries=5)  # type: ignore[misc]
+@st.cache_data(max_entries=5)
 def get_selected_area_info(
     site_df: pd.DataFrame, lat: float, lon: float, radius: float
 ) -> dict[str, typing.Any]:
@@ -93,7 +93,7 @@ def get_selected_area_info(
     )
 
 
-@st.cache_resource  # type: ignore[misc]
+@st.cache_resource
 def load_resources(
     resources_path: Path = DEFAULT_RESOURCES_PATH, local_jsons: bool = False
 ) -> tuple[pd.DataFrame, pd.DataFrame, Learner]:

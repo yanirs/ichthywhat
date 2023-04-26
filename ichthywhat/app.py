@@ -24,15 +24,14 @@ about_text = """
     Feedback is very welcome! Please send any comments via the
     [Reef Life Survey contact form](https://reeflifesurvey.com/contact/).
 """
-page_menu_items = {
-    "Get help": None,
-    "Report a Bug": "https://reeflifesurvey.com/contact/",
-    "About": about_text,
-}
 st.set_page_config(
     page_title=("[Dev] " if dev_mode else "") + "Ichthy-what? Fishy photo ID",
     page_icon=":tropical_fish:" if dev_mode else ":fish:",
-    menu_items=page_menu_items,
+    menu_items={
+        "Get help": None,
+        "Report a bug": "https://reeflifesurvey.com/contact/",
+        "About": about_text,
+    },
 )
 
 ########################
@@ -68,12 +67,15 @@ st.caption(
     "**Recommended**: Specify where the photos were taken to get occurrence "
     "frequencies. You can choose an existing RLS site or enter coordinates manually."
 )
-selected_site = st.selectbox(
-    "RLS site",
-    [
-        "None: Enter coordinates manually",
-        *site_df.index.str.cat(site_df["name"], ": ").tolist(),
-    ],
+selected_site = (
+    st.selectbox(
+        "RLS site",
+        [
+            "None: Enter coordinates manually",
+            *site_df.index.str.cat(site_df["name"], ": ").tolist(),
+        ],
+    )
+    or "None:"
 )
 selected_site_id = selected_site.split(":")[0]
 selected_site_info = (
@@ -166,7 +168,7 @@ if show_navigation_sidebar and uploaded_files:
     st.sidebar.markdown("[:small_red_triangle: Top](#ichthy-what-fishy-photo-id)")
 
 # Iterate over the uploaded files and display the results.
-for file_index, uploaded_file in enumerate(uploaded_files):
+for file_index, uploaded_file in enumerate(uploaded_files or ()):
     st.markdown("---")
 
     st.subheader(f":camera: Uploaded image #{file_index + 1}")
