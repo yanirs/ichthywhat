@@ -18,6 +18,10 @@ Alternatively, install [Vagrant](https://www.vagrantup.com/) and run everything 
 
     $ vagrant up
 
+As a shortcut for running various development servers on the Vagrant machine, you can run:
+
+    $ vagrant provision --provision-with run-servers
+
 ## Fish ID Streamlit app
 
 Run via streamlit in local development mode (run on save, use local species images, and expose beta features &ndash; the
