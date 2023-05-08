@@ -15,7 +15,7 @@ from fastai.metrics import accuracy, top_k_accuracy
 from fastai.torch_core import set_seed, show_image, tensor
 from fastai.vision.augment import RandomResizedCrop, aug_transforms
 from fastai.vision.data import ImageBlock
-from fastai.vision.learner import cnn_learner
+from fastai.vision.learner import vision_learner
 from fastcore.basics import range_of
 from fastcore.foundation import L as fastcore_list  # noqa: N811
 
@@ -92,7 +92,7 @@ def create_reproducible_learner(
     :param db_kwargs: optional keyword arguments for the DataBlock
     :param dls_kwargs: optional keyword arguments for the DataLoaders
     :param learner_kwargs: optional keyword arguments for the Learner
-    :return: the learner, as produced by `cnn_learner()`
+    :return: the learner, as produced by `vision_learner()`
     """
     # See https://github.com/fastai/fastai/issues/2832#issuecomment-698759541
     set_seed(42, reproducible=True)
@@ -109,7 +109,7 @@ def create_reproducible_learner(
             **(db_kwargs or {}),
         }
     ).dataloaders(dataset_path, **(dls_kwargs or {}))
-    return cnn_learner(
+    return vision_learner(
         dls,
         arch,
         **{
