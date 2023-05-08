@@ -14,6 +14,8 @@ Vagrant.configure("2") do |config|
   config.vm.network "forwarded_port", guest: 8501, host: 9301, host_ip: "127.0.0.1"
   # MLflow default port
   config.vm.network "forwarded_port", guest: 5000, host: 9302, host_ip: "127.0.0.1"
+  # Jupyter notebook default port
+  config.vm.network "forwarded_port", guest: 8888, host: 9303, host_ip: "127.0.0.1"
 
   # Image parent path (see README.md; disabled by default)
   config.vm.synced_folder "/path/to/img", "/ichthywhat-pics/img", type: "rsync", disabled: true
@@ -56,9 +58,11 @@ Vagrant.configure("2") do |config|
     echo " - FastAPI is on http://localhost:9300/ ('screen -r api')"
     echo " - Streamlit is on http://localhost:9301/ ('screen -r streamlit')"
     echo " - MLflow is on http://localhost:9302/ ('screen -r mlflow')"
+    echo " - Jupyter notebook is on http://localhost:9303/ ('screen -r notebook')"
     cd /vagrant
     screen -dmS api bash -c "poetry run uvicorn --reload --host 0.0.0.0 ichthywhat.api:api"
     screen -dmS streamlit bash -c "poetry run streamlit run ichthywhat/app.py"
     screen -dmS mlflow bash -c "poetry run mlflow ui --host 0.0.0.0 --backend-store-uri sqlite:///mlruns.db"
+    screen -dmS notebook bash -c "poetry run jupyter notebook --ip 0.0.0.0"
   SHELL
 end
