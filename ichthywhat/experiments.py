@@ -33,7 +33,9 @@ class MLflowCallback(Callback):  # type: ignore[misc]
         self.step += 1
         mlflow.log_metrics(
             dict(
-                zip(self.recorder.metric_names[1:], self.recorder.log[1:], strict=True)
+                zip(
+                    self.recorder.metric_names[1:-1], self.recorder.log[1:], strict=True
+                )
             ),
             step=self.step,
         )
