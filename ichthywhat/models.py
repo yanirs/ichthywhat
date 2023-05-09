@@ -19,6 +19,10 @@ def train_app_model(dataset_path: Path, models_path: Path, model_version: int) -
     :param model_version: version of the model. The model will be persisted as
                           app-v{model_version}.pkl under models_path.
     """
+    # This import is needed because of some magic patching done by fastai. Training
+    # fails without it.
+    import fastai.vision.all as _  # noqa: F401
+
     if model_version == 1:
         learner = experiments.create_reproducible_learner(
             resnet18,
