@@ -24,7 +24,7 @@ def train_app_model(dataset_path: Path, models_path: Path, model_version: int) -
             resnet18,
             dataset_path,
             db_kwargs=dict(splitter=experiments.no_validation_splitter),
-            learner_kwargs=dict(cbs=None),
+            learner_kwargs=dict(cbs=None, metrics=[]),
         )
         learner.fine_tune(120, freeze_epochs=5)
     elif model_version == 2:
@@ -37,7 +37,7 @@ def train_app_model(dataset_path: Path, models_path: Path, model_version: int) -
                 batch_tfms=aug_transforms(mult=2.0),
             ),
             dls_kwargs=dict(bs=16),
-            learner_kwargs=dict(cbs=None),
+            learner_kwargs=dict(cbs=None, metrics=[]),
         )
         learner.fine_tune(200, freeze_epochs=10)
     else:
