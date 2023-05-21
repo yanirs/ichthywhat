@@ -231,12 +231,11 @@ def test_learner(
     if show_grid:
         from matplotlib import pyplot as plt
 
-        for ax, img, label, pred in zip(
+        for ax, img, label, pred in zip(  # noqa: B905
             plt.subplots(*show_grid, figsize=(14, 16))[1].flatten(),
             test_dl.show_batch(show=False)[0],
             labels,
             preds,
-            strict=True,
         ):
             show_image(img, ctx=ax)
             pred_label = learner.dls.vocab[pred.argmax()]
