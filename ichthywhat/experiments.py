@@ -3,6 +3,8 @@ import contextlib
 import typing
 from pathlib import Path
 
+import torch
+
 # Fail silently because we don't need mlflow when running only inference.
 with contextlib.suppress(ImportError):
     import mlflow
@@ -12,12 +14,27 @@ from fastai.data.block import CategoryBlock, DataBlock
 from fastai.data.transforms import RandomSplitter, get_image_files
 from fastai.learner import Learner, Recorder
 from fastai.metrics import accuracy, top_k_accuracy
-from fastai.torch_core import set_seed, show_image, tensor
+from fastai.torch_core import (
+    get_random_states,
+    set_random_states,
+    set_seed,
+    show_image,
+    tensor,
+)
 from fastai.vision.augment import RandomResizedCrop, aug_transforms
 from fastai.vision.data import ImageBlock
 from fastai.vision.learner import vision_learner
 from fastcore.basics import range_of
 from fastcore.foundation import L as fastcore_list  # noqa: N811
+
+
+# TODO: debug only, can be removed
+def print_random_state_hash(prefix: str) -> None:
+    random_states = {
+        k: str(v.tolist() if k == "torch_state" else v)
+        for k, v in get_random_states().items()
+    }
+    print(f"[{prefix}] Random state hash: {hash(str(random_states))}")
 
 
 class MLflowCallback(Callback):  # type: ignore[misc]
@@ -95,7 +112,9 @@ def create_reproducible_learner(
     :return: the learner, as produced by `vision_learner()`
     """
     # See https://github.com/fastai/fastai/issues/2832#issuecomment-698759541
+    print_random_state_hash("Before set_seed()")
     set_seed(42, reproducible=True)
+    print_random_state_hash("Before DataBlock()")
     dls = DataBlock(
         **{
             **dict(
@@ -109,6 +128,7 @@ def create_reproducible_learner(
             **(db_kwargs or {}),
         }
     ).dataloaders(dataset_path, **(dls_kwargs or {}))
+    print_random_state_hash("Before vision_learner()")
     return vision_learner(
         dls,
         arch,
@@ -246,3 +266,97 @@ def test_learner(
         f"top_{k}_accuracy": top_k_accuracy(preds, label_codes, k).item()
         for k in (1, 3, 10)
     }
+
+
+class SaveCheckpointCallback(Callback):
+    """
+    A simplified version of SaveModelCallback.
+
+    Similarly to SaveModelCallback, this callback saves the model according to the
+    every_epoch argument. Unlike SaveModelCallback, it overwrites the latest checkpoint
+    and attempts to recover the random states.
+
+    TODO: While starting to fine tune again from the same restored checkpoint results
+    TODO: in reproducible results, it is different from the results obtained by training
+    TODO: without checkpoints. It's unclear why.
+    """
+
+    def __init__(self, every_epoch: int, checkpoint_path: Path, min_epoch: int = 1):
+        super().__init__()
+        self.every_epoch = every_epoch
+        self.checkpoint_path = checkpoint_path
+        self.min_epoch = min_epoch
+
+    def before_epoch(self):
+        # TODO: this is the key problem -- restored hypers don't match the stored
+        print(f"Before {self.epoch}: {self.opt.hypers}")
+
+    def after_epoch(self):
+        print_random_state_hash(f"After epoch {self.epoch}")
+        if self.epoch < self.min_epoch or (self.epoch % self.every_epoch):
+            return
+        print(f"Saving after epoch {self.epoch=}")
+        torch.save(
+            dict(
+                epoch=self.epoch,
+                model=self.model.state_dict(),
+                opt=self.opt.state_dict(),
+                random_states=get_random_states(),
+            ),
+            self.checkpoint_path,
+        )
+
+
+def _load_learner_checkpoint(learner: Learner, checkpoint_path: Path) -> int:
+    """Load the model & opt state, recover the random state, and return the epoch."""
+    if learner.opt is None:
+        learner.create_opt()
+    if hasattr(learner.dls, "device") and isinstance(learner.dls.device, int):
+        device = torch.device("cuda", learner.dls.device)
+    else:
+        device = "cpu"
+    print_random_state_hash("Before load()")
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    learner.model.load_state_dict(checkpoint["model"], strict=True)
+    learner.opt.load_state_dict(checkpoint["opt"])
+    set_random_states(**checkpoint["random_states"])
+    print_random_state_hash("After set()")
+    return checkpoint["epoch"]
+
+
+# TODO: figure out reproducibility and use in train_app_model(), then retrain v2
+def restartable_fine_tune(
+    learner: Learner,
+    model_path: Path,
+    epochs: int,
+    checkpoint_every_epoch: int = 10,
+    base_lr: float = 2e-3,
+    freeze_epochs: int = 1,
+    lr_mult: float = 100,
+    pct_start: float = 0.3,
+    div: float = 5.0,
+    **kwargs: typing.Any,
+):
+    checkpoint_path = model_path.with_suffix(".ckpt")
+    if checkpoint_path.exists():
+        start_epoch = _load_learner_checkpoint(learner, checkpoint_path) + 1
+        learner.add_cb(
+            SaveCheckpointCallback(
+                checkpoint_every_epoch, checkpoint_path, min_epoch=start_epoch
+            )
+        )
+        learner.fit_one_cycle(epochs, start_epoch=start_epoch)
+    else:
+        # Copied learner.fine_tune() to add save_model_cb prior to unfrozen fitting.
+        learner.freeze()
+        learner.fit_one_cycle(freeze_epochs, slice(base_lr), pct_start=0.99, **kwargs)
+        base_lr /= 2
+        learner.unfreeze()
+        learner.add_cb(SaveCheckpointCallback(checkpoint_every_epoch, checkpoint_path))
+        learner.fit_one_cycle(
+            epochs,
+            slice(base_lr / lr_mult, base_lr),
+            pct_start=pct_start,
+            div=div,
+            **kwargs,
+        )
