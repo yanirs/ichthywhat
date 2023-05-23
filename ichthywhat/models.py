@@ -6,18 +6,21 @@ from fastai.vision.augment import RandomResizedCrop, aug_transforms
 from torchvision.models import resnet18
 
 from ichthywhat import experiments
+from ichthywhat.constants import DEFAULT_MODELS_PATH
 
 
-def train_app_model(dataset_path: Path, models_path: Path, model_version: int) -> None:
+def train_app_model(
+    dataset_path: Path, model_version: int, models_path: Path = DEFAULT_MODELS_PATH
+) -> None:
     """
     Train and persist a model with hardcoded settings to be used in the app / api.
 
     See notebook 03-app.ipynb for usage and output examples.
 
     :param dataset_path: path to the dataset.
-    :param models_path: path to the directory to persist the model.
     :param model_version: version of the model. The model will be persisted as
                           app-v{model_version}.pkl under models_path.
+    :param models_path: path to the directory to persist the model.
     """
     # This import is needed because of some magic patching done by fastai. Training
     # fails without it.
