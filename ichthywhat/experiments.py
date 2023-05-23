@@ -307,7 +307,6 @@ def _load_learner_checkpoint(learner: Learner, checkpoint_path: Path) -> int:
     return checkpoint["epoch"]
 
 
-# TODO: use in train_app_model(), then retrain v2
 def resumable_fine_tune(
     learner: Learner,
     model_path: Path,
@@ -321,7 +320,7 @@ def resumable_fine_tune(
     **kwargs: typing.Any,
 ):
     """
-    Inline learner.fine_tune() to support resuming from model_path.
+    Inline learner.fine_tune() to support resuming from a model checkpoint.
 
     Arguments are as for learner.fine_tune() with the addition of model_path. If that
     path exists with the '.ckpt' suffix, then it will be loaded and training will be
