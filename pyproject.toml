@@ -20,6 +20,12 @@ streamlit-cropper = "~=0.2"
 fastapi = "~=0.95.0"
 uvicorn = "~=0.21.1"
 python-multipart = "~=0.0.6"
+# TODO: probably separate to groups:
+#  - training with fastai + onnx
+#  - inference api with onnxruntime + fastapi deps
+#  - inference app with streamlit, geopy, and fastai or onnxruntime
+onnx = "~=1.14.0"
+onnxruntime = "~=1.14.1"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "~=1.0"
