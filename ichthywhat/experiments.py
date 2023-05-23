@@ -28,15 +28,6 @@ from fastcore.basics import range_of
 from fastcore.foundation import L as fastcore_list  # noqa: N811
 
 
-# TODO: debug only, can be removed
-def print_random_state_hash(prefix: str) -> None:
-    random_states = {
-        k: str(v.tolist() if k == "torch_state" else v)
-        for k, v in get_random_states().items()
-    }
-    print(f"[{prefix}] Random state hash: {hash(str(random_states))}")
-
-
 class MLflowCallback(Callback):  # type: ignore[misc]
     """A Learner callback that logs the metrics of each epoch to MLflow."""
 
@@ -112,9 +103,7 @@ def create_reproducible_learner(
     :return: the learner, as produced by `vision_learner()`
     """
     # See https://github.com/fastai/fastai/issues/2832#issuecomment-698759541
-    print_random_state_hash("Before set_seed()")
     set_seed(42, reproducible=True)
-    print_random_state_hash("Before DataBlock()")
     dls = DataBlock(
         **{
             **dict(
@@ -128,7 +117,6 @@ def create_reproducible_learner(
             **(db_kwargs or {}),
         }
     ).dataloaders(dataset_path, **(dls_kwargs or {}))
-    print_random_state_hash("Before vision_learner()")
     return vision_learner(
         dls,
         arch,
@@ -268,34 +256,30 @@ def test_learner(
     }
 
 
-class SaveCheckpointCallback(Callback):
+class _SaveCheckpointCallback(Callback):
     """
     A simplified version of SaveModelCallback.
 
     Similarly to SaveModelCallback, this callback saves the model according to the
     every_epoch argument. Unlike SaveModelCallback, it overwrites the latest checkpoint
-    and attempts to recover the random states.
-
-    TODO: While starting to fine tune again from the same restored checkpoint results
-    TODO: in reproducible results, it is different from the results obtained by training
-    TODO: without checkpoints. It's unclear why.
+    and stores all the random states for reproducibility.
     """
 
-    def __init__(self, every_epoch: int, checkpoint_path: Path, min_epoch: int = 1):
+    # Values copied from SaveModelCallback.
+    # TODO: magic numbers for order are incredibly brittle -- move away from fast.ai
+    order = 61
+    remove_on_fetch = True
+    _only_train_loop = True
+
+    def __init__(self, every_epoch: int, checkpoint_path: Path, min_epoch: int):
         super().__init__()
         self.every_epoch = every_epoch
         self.checkpoint_path = checkpoint_path
         self.min_epoch = min_epoch
 
-    def before_epoch(self):
-        # TODO: this is the key problem -- restored hypers don't match the stored
-        print(f"Before {self.epoch}: {self.opt.hypers}")
-
-    def after_epoch(self):
-        print_random_state_hash(f"After epoch {self.epoch}")
+    def after_epoch(self) -> None:
         if self.epoch < self.min_epoch or (self.epoch % self.every_epoch):
             return
-        print(f"Saving after epoch {self.epoch=}")
         torch.save(
             dict(
                 epoch=self.epoch,
@@ -305,6 +289,7 @@ class SaveCheckpointCallback(Callback):
             ),
             self.checkpoint_path,
         )
+        print(f"Checkpoint saved for epoch {self.epoch}")
 
 
 def _load_learner_checkpoint(learner: Learner, checkpoint_path: Path) -> int:
@@ -315,17 +300,15 @@ def _load_learner_checkpoint(learner: Learner, checkpoint_path: Path) -> int:
         device = torch.device("cuda", learner.dls.device)
     else:
         device = "cpu"
-    print_random_state_hash("Before load()")
     checkpoint = torch.load(checkpoint_path, map_location=device)
     learner.model.load_state_dict(checkpoint["model"], strict=True)
     learner.opt.load_state_dict(checkpoint["opt"])
     set_random_states(**checkpoint["random_states"])
-    print_random_state_hash("After set()")
     return checkpoint["epoch"]
 
 
-# TODO: figure out reproducibility and use in train_app_model(), then retrain v2
-def restartable_fine_tune(
+# TODO: use in train_app_model(), then retrain v2
+def resumable_fine_tune(
     learner: Learner,
     model_path: Path,
     epochs: int,
@@ -337,26 +320,44 @@ def restartable_fine_tune(
     div: float = 5.0,
     **kwargs: typing.Any,
 ):
+    """
+    Inline learner.fine_tune() to support resuming from model_path.
+
+    Arguments are as for learner.fine_tune() with the addition of model_path. If that
+    path exists with the '.ckpt' suffix, then it will be loaded and training will be
+    resumed based on the checkpoint data in the file.
+
+    The implementation is based on the example in fastai's 14_callback.schedule.ipynb
+    (under _Resume training from checkpoint_). As in the notebook, for this to work,
+    this function should be called with the same learner parameters as used for the
+    stored checkpoint. This makes it quite brittle, especially when combined with the
+    maze of callbacks and delegated attributes.
+
+    TODO: While starting to fine tune again from the same restored checkpoint results
+    TODO: in reproducible results, it is different from the results obtained by training
+    TODO: without checkpoints. It's unclear why and hard to debug. Rather than investing
+    TODO: in debugging, it's probably better to drop the fastai dependency and then
+    TODO: figure it out.
+    """
     checkpoint_path = model_path.with_suffix(".ckpt")
     if checkpoint_path.exists():
         start_epoch = _load_learner_checkpoint(learner, checkpoint_path) + 1
-        learner.add_cb(
-            SaveCheckpointCallback(
-                checkpoint_every_epoch, checkpoint_path, min_epoch=start_epoch
-            )
-        )
-        learner.fit_one_cycle(epochs, start_epoch=start_epoch)
     else:
-        # Copied learner.fine_tune() to add save_model_cb prior to unfrozen fitting.
         learner.freeze()
         learner.fit_one_cycle(freeze_epochs, slice(base_lr), pct_start=0.99, **kwargs)
-        base_lr /= 2
         learner.unfreeze()
-        learner.add_cb(SaveCheckpointCallback(checkpoint_every_epoch, checkpoint_path))
-        learner.fit_one_cycle(
-            epochs,
-            slice(base_lr / lr_mult, base_lr),
-            pct_start=pct_start,
-            div=div,
-            **kwargs,
+        start_epoch = 0
+    base_lr /= 2
+    learner.add_cb(
+        _SaveCheckpointCallback(
+            checkpoint_every_epoch, checkpoint_path, min_epoch=start_epoch or 1
         )
+    )
+    learner.fit_one_cycle(
+        epochs,
+        slice(base_lr / lr_mult, base_lr),
+        pct_start=pct_start,
+        div=div,
+        start_epoch=start_epoch,
+        **kwargs,
+    )

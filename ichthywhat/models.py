@@ -23,6 +23,7 @@ def train_app_model(dataset_path: Path, models_path: Path, model_version: int) -
     # fails without it.
     import fastai.vision.all as _  # noqa: F401
 
+    exported_model_path = models_path / f"app-v{model_version}.pkl"
     if model_version == 1:
         learner = experiments.create_reproducible_learner(
             resnet18,
@@ -30,7 +31,9 @@ def train_app_model(dataset_path: Path, models_path: Path, model_version: int) -
             db_kwargs=dict(splitter=experiments.no_validation_splitter),
             learner_kwargs=dict(cbs=None, metrics=[]),
         )
-        learner.fine_tune(120, freeze_epochs=5)
+        experiments.resumable_fine_tune(
+            learner, exported_model_path, epochs=120, freeze_epochs=5
+        )
     elif model_version == 2:
         learner = experiments.create_reproducible_learner(
             resnet18,
@@ -43,7 +46,9 @@ def train_app_model(dataset_path: Path, models_path: Path, model_version: int) -
             dls_kwargs=dict(bs=16),
             learner_kwargs=dict(cbs=None, metrics=[]),
         )
-        learner.fine_tune(200, freeze_epochs=10)
+        experiments.resumable_fine_tune(
+            learner, exported_model_path, epochs=200, freeze_epochs=10
+        )
     else:
         raise ValueError(f"Unsupported {model_version=}")
-    learner.export(models_path / f"app-v{model_version}.pkl")
+    learner.export(exported_model_path)
