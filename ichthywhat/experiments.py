@@ -296,11 +296,7 @@ def _load_learner_checkpoint(learner: Learner, checkpoint_path: Path) -> int:
     """Load the model & opt state, recover the random state, and return the epoch."""
     if learner.opt is None:
         learner.create_opt()
-    if hasattr(learner.dls, "device") and isinstance(learner.dls.device, int):
-        device = torch.device("cuda", learner.dls.device)
-    else:
-        device = "cpu"
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path)
     learner.model.load_state_dict(checkpoint["model"], strict=True)
     learner.opt.load_state_dict(checkpoint["opt"])
     set_random_states(**checkpoint["random_states"])
