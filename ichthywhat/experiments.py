@@ -328,11 +328,11 @@ def resumable_fine_tune(
     stored checkpoint. This makes it quite brittle, especially when combined with the
     maze of callbacks and delegated attributes.
 
-    TODO: While starting to fine tune again from the same restored checkpoint results
-    TODO: in reproducible results, it is different from the results obtained by training
+    TODO: While fine tuning repeatedly from the same restored checkpoint yields
+    TODO: reproducible results, it is different from the results obtained by training
     TODO: without checkpoints. It's unclear why and hard to debug. Rather than investing
     TODO: in debugging, it's probably better to drop the fastai dependency and then
-    TODO: figure it out.
+    TODO: figure it out with pure PyTorch.
     """
     checkpoint_path = model_path.with_suffix(".ckpt")
     if checkpoint_path.exists():
@@ -340,8 +340,13 @@ def resumable_fine_tune(
     else:
         learner.freeze()
         learner.fit_one_cycle(freeze_epochs, slice(base_lr), pct_start=0.99, **kwargs)
-        learner.unfreeze()
         start_epoch = 0
+    # There are two reasons to unfreeze here:
+    #  - if we start from a loaded learner that's created with vision_learner(), it
+    #    includes a call to freeze(), so we're getting a frozen learner even if we start
+    #    from a checkpoint
+    #  - if we're fine-tuning from scratch, there's an explicit call to freeze() above
+    learner.unfreeze()
     base_lr /= 2
     learner.add_cb(
         _SaveCheckpointCallback(
