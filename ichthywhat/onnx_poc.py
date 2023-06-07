@@ -8,22 +8,18 @@ import json
 from pathlib import Path
 
 import numpy as np
-import onnxruntime as ort
+import onnx
 import pandas as pd
 import torch
 import torchvision.transforms
 from fastai.learner import Learner
+from onnxruntime import InferenceSession
 from PIL import Image
 
 # TODO: validate exported onnx model on the QUT dataset
 # TODO: refactor streamlit app (use functions) and change it to use ONNX
 # TODO: use ONNX in the API (rewrite Dockerfile accordingly)
 # TODO: try running inference in the browser
-
-
-def onnx_model_to_label_path(onnx_model_path: Path) -> Path:
-    """Return the path of the labels json for the given ONNX model path."""
-    return onnx_model_path.parent / f"{onnx_model_path.name}.labels.json"
 
 
 # TODO: move this to models.py to make OnnxWrapper independent of fastai & torch.
@@ -60,19 +56,29 @@ def export_learner_to_onnx(learner: Learner, export_path: Path) -> None:
         output_names=["output"],
         # Allow variable length batches, but still require fixed image sizes.
         dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+        # Use the maximum supported version.
+        opset_version=16,
     )
-    with onnx_model_to_label_path(export_path).open("w") as fp:
-        json.dump(list(learner.dls.vocab), fp)
+    # Looks like there isn't an easy way to specify the labels as part of the export.
+    # See: https://github.com/pytorch/pytorch/issues/42808
+    onnx_model = onnx.load(str(export_path))
+    onnx_model.metadata_props.append(
+        onnx.StringStringEntryProto(
+            key="labels", value=json.dumps(list(learner.dls.vocab))
+        )
+    )
+    onnx.save(onnx_model, str(export_path))
 
 
 class OnnxWrapper:
     """Simple wrapper around an ONNX image classification model."""
 
     def __init__(self, model_path: Path):
-        """Load the ONNX model and labels."""
-        with onnx_model_to_label_path(model_path).open() as fp:
-            self._labels = json.load(fp)
-        self._ort_sess = ort.InferenceSession(str(model_path))
+        """Load the ONNX model and prepare for inference."""
+        self._ort_sess = InferenceSession(str(model_path))
+        self._labels = json.loads(
+            self._ort_sess.get_modelmeta().custom_metadata_map["labels"]
+        )
         self._img_size = self._ort_sess.get_inputs()[0].shape[2:]
         self._input_name = self._ort_sess.get_inputs()[0].name
         self._output_name = self._ort_sess.get_outputs()[0].name
