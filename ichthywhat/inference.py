@@ -1,7 +1,7 @@
 """
-ONNX export and inference proof-of-concept.
+Thin ONNX wrapper for inference in production.
 
-Builds on https://community.wandb.ai/t/taking-fastai-to-production/1705
+Originally inspired by https://community.wandb.ai/t/taking-fastai-to-production/1705
 """
 import io
 import json
@@ -12,8 +12,8 @@ import pandas as pd
 from onnxruntime import InferenceSession
 from PIL import Image
 
-# TODO: validate exported onnx model on the QUT dataset
-# TODO: refactor streamlit app (use functions) and change it to use ONNX
+# TODO: validate exported ONNX model on the QUT dataset
+# TODO: consider changing the streamlit app to use ONNX
 # TODO: use ONNX in the API (rewrite Dockerfile accordingly)
 # TODO: try running inference in the browser
 

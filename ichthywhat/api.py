@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse
 
 from ichthywhat.constants import DEFAULT_RESOURCES_PATH
-from ichthywhat.onnx_poc import OnnxWrapper
+from ichthywhat.inference import OnnxWrapper
 
 api = FastAPI()
 api.add_middleware(
