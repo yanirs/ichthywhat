@@ -12,9 +12,6 @@ import pandas as pd
 from onnxruntime import InferenceSession
 from PIL import Image
 
-# TODO: validate exported ONNX model on the QUT dataset
-# TODO: try running inference in the browser
-
 
 class OnnxWrapper:
     """Simple wrapper around an ONNX image classification model."""
