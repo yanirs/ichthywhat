@@ -2,7 +2,9 @@
 # Then, ignore stuff that may be under the directories we want to keep.
 *
 
+!poetry.lock
+!pyproject.toml
 !ichthywhat/
-!resources/model.pkl
+!resources/model.onnx
 
 **/__pycache__/

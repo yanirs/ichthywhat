@@ -13,8 +13,6 @@ from onnxruntime import InferenceSession
 from PIL import Image
 
 # TODO: validate exported ONNX model on the QUT dataset
-# TODO: consider changing the streamlit app to use ONNX
-# TODO: use ONNX in the API (rewrite Dockerfile accordingly)
 # TODO: try running inference in the browser
 
 
