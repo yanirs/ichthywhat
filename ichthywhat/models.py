@@ -1,7 +1,11 @@
 """Training and persistence for models that get served."""
-
+import json
 from pathlib import Path
 
+import onnx
+import torch
+import torchvision.transforms
+from fastai.learner import load_learner
 from fastai.vision.augment import RandomResizedCrop, aug_transforms
 from torchvision.models import resnet18
 
@@ -55,3 +59,51 @@ def train_app_model(
     else:
         raise ValueError(f"Unsupported {model_version=}")
     learner.export(exported_model_path)
+
+
+def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
+    """Export learner to an ONNX model and persist it to export_path."""
+    learner = load_learner(learner_path)
+    model = torch.nn.Sequential(
+        # TODO: add more steps from OnnxWrapper._load_input_image()?
+        # Replace fastai's normalisation. Tested only with resnet18 (these are ImageNet
+        # stats), so other models might not have the step.
+        torchvision.transforms.Normalize(
+            mean=learner.dls.after_batch.normalize.mean.squeeze(),
+            std=learner.dls.after_batch.normalize.std.squeeze(),
+        ),
+        # Actual PyTorch model.
+        learner.model.eval(),
+        # Replace fastai's softmax layer.
+        torch.nn.Softmax(dim=1),
+    )
+    # This is a somewhat convoluted way to get the shape of the input, but better than
+    # hard-coding it. There may be a better way to inspect the DataLoaders, but it's
+    # hard with the usual fastai maze of dynamic attributes and methods.
+    input_shape = (
+        learner.dls.test_dl([torch.Tensor([0])], num_workers=0).one_batch()[0].shape
+    )
+    if input_shape[-1] != input_shape[-2]:
+        raise ValueError(
+            "Rectangular images require more tests (see OnnxWrapper._load_input_image)"
+        )
+    torch.onnx.export(
+        model,
+        torch.randn(input_shape),
+        str(export_path),
+        input_names=["input"],
+        output_names=["output"],
+        # Allow variable length batches, but still require fixed image sizes.
+        dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+        # Use the maximum supported version.
+        opset_version=16,
+    )
+    # Looks like there isn't an easy way to specify the labels as part of the export.
+    # See: https://github.com/pytorch/pytorch/issues/42808
+    onnx_model = onnx.load(str(export_path))
+    onnx_model.metadata_props.append(
+        onnx.StringStringEntryProto(
+            key="labels", value=json.dumps(list(learner.dls.vocab))
+        )
+    )
+    onnx.save(onnx_model, str(export_path))

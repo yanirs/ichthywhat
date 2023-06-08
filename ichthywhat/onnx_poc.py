@@ -8,11 +8,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-import onnx
 import pandas as pd
-import torch
-import torchvision.transforms
-from fastai.learner import Learner
 from onnxruntime import InferenceSession
 from PIL import Image
 
@@ -20,54 +16,6 @@ from PIL import Image
 # TODO: refactor streamlit app (use functions) and change it to use ONNX
 # TODO: use ONNX in the API (rewrite Dockerfile accordingly)
 # TODO: try running inference in the browser
-
-
-# TODO: move this to models.py to make OnnxWrapper independent of fastai & torch.
-def export_learner_to_onnx(learner: Learner, export_path: Path) -> None:
-    """Export learner to an ONNX model and persist it to export_path."""
-    model = torch.nn.Sequential(
-        # TODO: add more steps from OnnxWrapper._load_input_image()?
-        # Replace fastai's normalisation. Tested only with resnet18 (these are ImageNet
-        # stats), so other models might not have the step.
-        torchvision.transforms.Normalize(
-            mean=learner.dls.after_batch.normalize.mean.squeeze(),
-            std=learner.dls.after_batch.normalize.std.squeeze(),
-        ),
-        # Actual PyTorch model.
-        learner.model.eval(),
-        # Replace fastai's softmax layer.
-        torch.nn.Softmax(dim=1),
-    )
-    # This is a somewhat convoluted way to get the shape of the input, but better than
-    # hard-coding it. There may be a better way to inspect the DataLoaders, but it's
-    # hard with the usual fastai maze of dynamic attributes and methods.
-    input_shape = (
-        learner.dls.test_dl([torch.Tensor([0])], num_workers=0).one_batch()[0].shape
-    )
-    if input_shape[-1] != input_shape[-2]:
-        raise ValueError(
-            "Rectangular images require more tests (see OnnxWrapper._load_input_image)"
-        )
-    torch.onnx.export(
-        model,
-        torch.randn(input_shape),
-        str(export_path),
-        input_names=["input"],
-        output_names=["output"],
-        # Allow variable length batches, but still require fixed image sizes.
-        dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
-        # Use the maximum supported version.
-        opset_version=16,
-    )
-    # Looks like there isn't an easy way to specify the labels as part of the export.
-    # See: https://github.com/pytorch/pytorch/issues/42808
-    onnx_model = onnx.load(str(export_path))
-    onnx_model.metadata_props.append(
-        onnx.StringStringEntryProto(
-            key="labels", value=json.dumps(list(learner.dls.vocab))
-        )
-    )
-    onnx.save(onnx_model, str(export_path))
 
 
 class OnnxWrapper:
