@@ -12,7 +12,7 @@ def run_cli() -> None:
         create_rls_species_dataset,
         create_test_dataset,
     )
-    from ichthywhat.models import train_app_model
+    from ichthywhat.training import train_app_model
 
     logging.basicConfig(
         format="%(asctime)s [%(name)s.%(funcName)s:%(lineno)d] %(levelname)s: "
