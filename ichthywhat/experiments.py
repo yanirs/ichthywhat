@@ -3,6 +3,8 @@ import contextlib
 import typing
 from pathlib import Path
 
+import torch
+
 # Fail silently because we don't need mlflow when running only inference.
 with contextlib.suppress(ImportError):
     import mlflow
@@ -12,10 +14,16 @@ from fastai.data.block import CategoryBlock, DataBlock
 from fastai.data.transforms import RandomSplitter, get_image_files
 from fastai.learner import Learner, Recorder
 from fastai.metrics import accuracy, top_k_accuracy
-from fastai.torch_core import set_seed, show_image, tensor
+from fastai.torch_core import (
+    get_random_states,
+    set_random_states,
+    set_seed,
+    show_image,
+    tensor,
+)
 from fastai.vision.augment import RandomResizedCrop, aug_transforms
 from fastai.vision.data import ImageBlock
-from fastai.vision.learner import cnn_learner
+from fastai.vision.learner import vision_learner
 from fastcore.basics import range_of
 from fastcore.foundation import L as fastcore_list  # noqa: N811
 
@@ -92,7 +100,7 @@ def create_reproducible_learner(
     :param db_kwargs: optional keyword arguments for the DataBlock
     :param dls_kwargs: optional keyword arguments for the DataLoaders
     :param learner_kwargs: optional keyword arguments for the Learner
-    :return: the learner, as produced by `cnn_learner()`
+    :return: the learner, as produced by `vision_learner()`
     """
     # See https://github.com/fastai/fastai/issues/2832#issuecomment-698759541
     set_seed(42, reproducible=True)
@@ -109,7 +117,7 @@ def create_reproducible_learner(
             **(db_kwargs or {}),
         }
     ).dataloaders(dataset_path, **(dls_kwargs or {}))
-    return cnn_learner(
+    return vision_learner(
         dls,
         arch,
         **{
@@ -231,12 +239,11 @@ def test_learner(
     if show_grid:
         from matplotlib import pyplot as plt
 
-        for ax, img, label, pred in zip(
+        for ax, img, label, pred in zip(  # noqa: B905
             plt.subplots(*show_grid, figsize=(14, 16))[1].flatten(),
             test_dl.show_batch(show=False)[0],
             labels,
             preds,
-            strict=True,
         ):
             show_image(img, ctx=ax)
             pred_label = learner.dls.vocab[pred.argmax()]
@@ -247,3 +254,110 @@ def test_learner(
         f"top_{k}_accuracy": top_k_accuracy(preds, label_codes, k).item()
         for k in (1, 3, 10)
     }
+
+
+class _SaveCheckpointCallback(Callback):  # type: ignore[misc]
+    """
+    A simplified version of SaveModelCallback.
+
+    Similarly to SaveModelCallback, this callback saves the model according to the
+    every_epoch argument. Unlike SaveModelCallback, it overwrites the latest checkpoint
+    and stores all the random states for reproducibility.
+    """
+
+    # Values copied from SaveModelCallback.
+    # TODO: magic numbers for order are incredibly brittle -- move away from fast.ai
+    order = 61
+    remove_on_fetch = True
+    _only_train_loop = True
+
+    def __init__(self, every_epoch: int, checkpoint_path: Path, min_epoch: int):
+        super().__init__()
+        self.every_epoch = every_epoch
+        self.checkpoint_path = checkpoint_path
+        self.min_epoch = min_epoch
+
+    def after_epoch(self) -> None:
+        if self.epoch < self.min_epoch or (self.epoch % self.every_epoch):
+            return
+        torch.save(
+            dict(
+                epoch=self.epoch,
+                model=self.model.state_dict(),
+                opt=self.opt.state_dict(),
+                random_states=get_random_states(),
+            ),
+            self.checkpoint_path,
+        )
+        print(f"Checkpoint saved for epoch {self.epoch}")
+
+
+def _load_learner_checkpoint(learner: Learner, checkpoint_path: Path) -> int:
+    """Load the model & opt state, recover the random state, and return the epoch."""
+    if learner.opt is None:
+        learner.create_opt()
+    checkpoint = torch.load(checkpoint_path)
+    learner.model.load_state_dict(checkpoint["model"], strict=True)
+    learner.opt.load_state_dict(checkpoint["opt"])  # type: ignore[union-attr]
+    set_random_states(**checkpoint["random_states"])
+    return checkpoint["epoch"]  # type: ignore[no-any-return]
+
+
+def resumable_fine_tune(
+    learner: Learner,
+    model_path: Path,
+    epochs: int,
+    checkpoint_every_epoch: int = 10,
+    base_lr: float = 2e-3,
+    freeze_epochs: int = 1,
+    lr_mult: float = 100,
+    pct_start: float = 0.3,
+    div: float = 5.0,
+    **kwargs: typing.Any,
+) -> None:
+    """
+    Inline learner.fine_tune() to support resuming from a model checkpoint.
+
+    Arguments are as for learner.fine_tune() with the addition of model_path. If that
+    path exists with the '.ckpt' suffix, then it will be loaded and training will be
+    resumed based on the checkpoint data in the file.
+
+    The implementation is based on the example in fastai's 14_callback.schedule.ipynb
+    (under _Resume training from checkpoint_). As in the notebook, for this to work,
+    this function should be called with the same learner parameters as used for the
+    stored checkpoint. This makes it quite brittle, especially when combined with the
+    maze of callbacks and delegated attributes.
+
+    TODO: While fine tuning repeatedly from the same restored checkpoint yields
+    TODO: reproducible results, it is different from the results obtained by training
+    TODO: without checkpoints. It's unclear why and hard to debug. Rather than investing
+    TODO: in debugging, it's probably better to drop the fastai dependency and then
+    TODO: figure it out with pure PyTorch.
+    """
+    checkpoint_path = model_path.with_suffix(".ckpt")
+    if checkpoint_path.exists():
+        start_epoch = _load_learner_checkpoint(learner, checkpoint_path) + 1
+    else:
+        learner.freeze()
+        learner.fit_one_cycle(freeze_epochs, slice(base_lr), pct_start=0.99, **kwargs)
+        start_epoch = 0
+    # There are two reasons to unfreeze here:
+    #  - if we start from a loaded learner that's created with vision_learner(), it
+    #    includes a call to freeze(), so we're getting a frozen learner even if we start
+    #    from a checkpoint
+    #  - if we're fine-tuning from scratch, there's an explicit call to freeze() above
+    learner.unfreeze()
+    base_lr /= 2
+    learner.add_cb(
+        _SaveCheckpointCallback(
+            checkpoint_every_epoch, checkpoint_path, min_epoch=start_epoch or 1
+        )
+    )
+    learner.fit_one_cycle(
+        epochs,
+        slice(base_lr / lr_mult, base_lr),
+        pct_start=pct_start,
+        div=div,
+        start_epoch=start_epoch,
+        **kwargs,
+    )
