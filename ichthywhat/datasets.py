@@ -11,16 +11,20 @@ from PIL import Image
 def create_rls_genus_dataset(
     *, image_dir: Path, output_dir: Path, num_top_genera: int
 ) -> None:
-    """
-    Create a dataset of the top genera from an RLS image directory.
+    """Create a dataset of the top genera from an RLS image directory.
 
     Images are cropped to remove the RLS URL.
 
-    :param image_dir: Path of an RLS image directory, containing files named
-                      `<genus>-<taxon>-<num>.<extension>`.
-    :param output_dir: Path of the output directory, which must not exist.
-    :param num_top_genera: Number of top genera to include, where ranking is based on
-                           the number of images per genus.
+    Parameters
+    ----------
+    image_dir
+        Path of an RLS image directory, containing files named
+        `<genus>-<taxon>-<num>.<extension>`.
+    output_dir
+        Path of the output directory, which must not exist.
+    num_top_genera
+        Number of top genera to include, where ranking is based on the number of images
+        per genus.
     """
     raise NotImplementedError(
         "Need to handle duplicates as in create_rls_species_dataset()"
@@ -47,19 +51,23 @@ def create_rls_species_dataset(
     num_species: int | None = None,
     min_images_per_species: int = 1,
 ) -> None:
-    """
-    Create a dataset directory from an RLS image directory.
+    """Create a dataset directory from an RLS image directory.
 
     Images are cropped to remove the RLS URL.
 
-    :param m1_csv_path: Path of an M1 CSV file, as downloaded from RLS.
-    :param image_dir: Path of an RLS image directory, containing files named
-                      `<genus>-<taxon>-<num>.<extension>`.
-    :param output_dir: Path of the output directory, which must not exist.
-    :param num_species: Number of species to include in the dataset. If None, all
-                        species are included.
-    :param min_images_per_species: Only species with at least this number of images will
-                                   be included.
+    Parameters
+    ----------
+    m1_csv_path
+        Path of an M1 CSV file, as downloaded from RLS.
+    image_dir
+        Path of an RLS image directory, containing files named
+        `<genus>-<taxon>-<num>.<extension>`.
+    output_dir
+        Path of the output directory, which must not exist.
+    num_species
+        Number of species to include in the dataset. If None, all species are included.
+    min_images_per_species
+        Only species with at least this number of images will be included.
     """
     species_with_min_images = set()
     species_with_duplicates = set()
@@ -105,8 +113,7 @@ def create_rls_species_dataset(
 
 
 def _crop_image_file(src: Path, dst: Path, top_bottom_pixels: int = 55) -> None:
-    """
-    Crop the top and bottom of an image.
+    """Crop the top and bottom of an image.
 
     The default pixel count is useful for removing the RLS URL.
     """
@@ -116,16 +123,19 @@ def _crop_image_file(src: Path, dst: Path, top_bottom_pixels: int = 55) -> None:
 
 
 def create_test_dataset(*, trip_dir: Path, output_dir: Path) -> None:
-    """
-    Create a test dataset from a trip directory, which is traversed recursively.
+    """Create a test dataset from a trip directory, which is traversed recursively.
 
     This function attempts to filter out unlabelled files (e.g., those that include
     `sp`). The mapping from the original filenames is written to `src_to_dst.csv` in the
     output directory.
 
-    :param trip_dir: Path of a trip directory, containing files named
-                     `<ID> - [species][ AND <species>]*.<jpg|JPG>`.
-    :param output_dir: Path of the output directory, which must not exist.
+    Parameters
+    ----------
+    trip_dir
+        Path of a trip directory, containing files named
+        `<ID> - [species][ AND <species>]*.<jpg|JPG>`.
+    output_dir
+        Path of the output directory, which must not exist.
     """
     output_dir.mkdir(parents=True)
     src_to_dst = {}
