@@ -256,7 +256,7 @@ def test_learner(
     }
 
 
-class _SaveCheckpointCallback(Callback):
+class _SaveCheckpointCallback(Callback):  # type: ignore[misc]
     """
     A simplified version of SaveModelCallback.
 
@@ -298,9 +298,9 @@ def _load_learner_checkpoint(learner: Learner, checkpoint_path: Path) -> int:
         learner.create_opt()
     checkpoint = torch.load(checkpoint_path)
     learner.model.load_state_dict(checkpoint["model"], strict=True)
-    learner.opt.load_state_dict(checkpoint["opt"])
+    learner.opt.load_state_dict(checkpoint["opt"])  # type: ignore[union-attr]
     set_random_states(**checkpoint["random_states"])
-    return checkpoint["epoch"]
+    return checkpoint["epoch"]  # type: ignore[no-any-return]
 
 
 def resumable_fine_tune(
@@ -314,7 +314,7 @@ def resumable_fine_tune(
     pct_start: float = 0.3,
     div: float = 5.0,
     **kwargs: typing.Any,
-):
+) -> None:
     """
     Inline learner.fine_tune() to support resuming from a model checkpoint.
 
