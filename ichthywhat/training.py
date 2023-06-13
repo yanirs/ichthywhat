@@ -16,15 +16,19 @@ from ichthywhat.constants import DEFAULT_MODELS_PATH
 def train_app_model(
     dataset_path: Path, model_version: int, models_path: Path = DEFAULT_MODELS_PATH
 ) -> None:
-    """
-    Train and persist a model with hardcoded settings to be used in the app / api.
+    """Train and persist a model with hardcoded settings to be used in the app / api.
 
     See notebook 03-app.ipynb for usage and output examples.
 
-    :param dataset_path: path to the dataset.
-    :param model_version: version of the model. The model will be persisted as
-                          app-v{model_version}.pkl under models_path.
-    :param models_path: path to the directory to persist the model.
+    Parameters
+    ----------
+    dataset_path
+        training dataset directory.
+    model_version
+        version of the model. The model will be persisted as app-v{model_version}.pkl
+        under models_path.
+    models_path
+        the directory where the model will be persisted.
     """
     # This import is needed because of some magic patching done by fastai. Training
     # fails without it.

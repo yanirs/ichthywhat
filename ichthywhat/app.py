@@ -2,17 +2,20 @@
 import dataclasses
 import io
 import sys
+from collections import defaultdict
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any, Final
 
 import pandas as pd
 import streamlit as st
-from fastai.learner import Learner
+from fastai.learner import Learner, load_learner
 from fastai.vision.core import PILImage
+from geopy.distance import geodesic
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 from streamlit_cropper import st_cropper
 
-from ichthywhat.app_util import get_selected_area_info, load_resources
+from ichthywhat.constants import DEFAULT_RESOURCES_PATH
 
 _ABOUT_TEXT: Final[
     str
@@ -60,11 +63,141 @@ def main() -> None:
             "About": _ABOUT_TEXT,
         },
     )
-    species_df, site_df, model = load_resources(local_jsons=opts.dev_mode)
+    species_df, site_df, model = _load_resources(local_jsons=opts.dev_mode)
     _display_basic_inputs(opts, site_df)
     _display_selected_area_info(opts, site_df)
     _display_view_options(opts)
     _display_results(opts, species_df, model)
+
+
+def _load_species_df(path_or_url: str | Path) -> pd.DataFrame:
+    """Load the species DataFrame from the JSON used for other RLS tools.
+
+    Parameters
+    ----------
+    path_or_url
+        local path or URL of the JSON.
+
+    Returns
+    -------
+    pd.DataFrame
+        the species DataFrame.
+    """
+    species_df = pd.read_json(path_or_url, orient="index")
+    species_df.columns = ["name", "common_names", "url", "method", "images"]
+    species_df["method"] = species_df["method"].map({0: "M1", 1: "M2", 2: "Both"})
+    species_df["common_name"] = species_df["common_names"].str.split(",", n=1).str[0]
+    species_df.drop(columns=["common_names"], inplace=True)
+    return species_df
+
+
+def _load_site_df(path_or_url: str | Path, species_df: pd.DataFrame) -> pd.DataFrame:
+    """Load the site DataFrame from the JSON used for other RLS tools.
+
+    Parameters
+    ----------
+    path_or_url
+        local path or URL of the JSON.
+    species_df
+        the species DataFrame, as returned from load_species_df().
+
+    Returns
+    -------
+    pd.DataFrame
+        the site DataFrame, with the 'species_counts' keys converted from IDs to species
+        names.
+    """
+    site_df = pd.read_json(path_or_url, orient="index")
+    site_df.index.name = "site"
+    site_df.columns = [
+        "realm",
+        "ecoregion",
+        "name",
+        "lon",
+        "lat",
+        "num_surveys",
+        "species_counts",
+    ]
+    site_df["species_counts"] = site_df["species_counts"].map(
+        lambda species_counts: {
+            species_df.loc[int(species_id)]["name"]: species_count
+            for species_id, species_count in species_counts.items()
+        }
+    )
+    return site_df
+
+
+@st.cache_data(max_entries=5)
+def _get_selected_area_info(
+    site_df: pd.DataFrame, lat: float, lon: float, radius: float
+) -> dict[str, Any]:
+    """Get information about the selected area.
+
+    Parameters
+    ----------
+    site_df
+        the site DataFrame, as returned from load_site_df().
+    lat
+        the latitude of the selected area.
+    lon
+        the longitude of the selected area.
+    radius
+        the radius of the selected area in kilometers.
+
+    Returns
+    -------
+    dict[str, Any]
+        a dictionary with the following keys and values:
+        * 'filtered_site_df': `site_df`, filtered to only include sites within `radius`
+          kilometers from `lat` & `lon`.
+        * 'num_surveys': the total number of surveys in the selected area.
+        * 'species_freqs': a dictionary mapping species names to their frequencies in
+          the selected area.
+    """
+    site_distances = site_df.apply(
+        lambda row: geodesic((lat, lon), (row["lat"], row["lon"])).km, axis=1
+    )
+    area_site_df = site_df.loc[site_distances <= radius]
+    num_area_surveys = area_site_df["num_surveys"].sum()
+    area_species_freqs: dict[str, float] = defaultdict(float)
+    for _area_site_id, area_site_info in area_site_df.iterrows():
+        for species_name, species_count in area_site_info["species_counts"].items():
+            area_species_freqs[species_name] += species_count / num_area_surveys
+    return dict(
+        filtered_site_df=area_site_df,
+        num_surveys=num_area_surveys,
+        species_freqs=area_species_freqs,
+    )
+
+
+@st.cache_resource
+def _load_resources(
+    resources_path: Path = DEFAULT_RESOURCES_PATH, local_jsons: bool = False
+) -> tuple[pd.DataFrame, pd.DataFrame, Learner]:
+    """Load and cache all the static resources used by the streamlit app.
+
+    Parameters
+    ----------
+    resources_path
+        path of the resource directory.
+    local_jsons
+        if True, append `/local` when loading the survey & species DataFrames.
+
+    Returns
+    -------
+    pd.DataFrame
+        the species DataFrame.
+    pd.DataFrame
+        the site DataFrame.
+    Learner
+        the classification model.
+    """
+    model = load_learner(resources_path / "model.pkl")
+    if local_jsons:
+        resources_path /= "local"
+    species_df = _load_species_df(resources_path / "api-species.json")
+    site_df = _load_site_df(resources_path / "api-site-surveys.json", species_df)
+    return species_df, site_df, model
 
 
 def _display_basic_inputs(opts: AppOptions, site_df: pd.DataFrame) -> None:
@@ -142,7 +275,7 @@ def _display_selected_area_info(opts: AppOptions, site_df: pd.DataFrame) -> None
     # Only select an area if the coordinates changed from the 0/0 defaults. This means
     # that this point can't be selected, but it's unlikely to be used in practice.
     if opts.selected_lat or opts.selected_lon:
-        opts.selected_area_info = get_selected_area_info(
+        opts.selected_area_info = _get_selected_area_info(
             site_df, opts.selected_lat, opts.selected_lon, opts.selected_area_radius
         )
     else:

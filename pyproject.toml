@@ -72,11 +72,14 @@ select = [
 ignore = [
   "C408",  # unnecessary-collection-call
   "D203",  # one-blank-line-before-class
-  "D212",  # multi-line-summary-first-line
+  "D213",  # multi-line-summary-second-line
   "PD002",  # pandas-use-of-inplace-argument
   "RUF001",  # ambiguous-unicode-character-string
   "S101",  # assert
 ]
+
+[tool.ruff.pydocstyle]
+convention = "numpy"
 
 [tool.mypy]
 check_untyped_defs = true
