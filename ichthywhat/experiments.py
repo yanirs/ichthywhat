@@ -33,7 +33,7 @@ class MLflowCallback(Callback):  # type: ignore[misc]
 
     run_after = Recorder
 
-    def __init__(self, start_step: int = 0, **kwargs: typing.Any):  # noqa: D107
+    def __init__(self, start_step: int = 0, **kwargs: typing.Any):
         super().__init__(**kwargs)
         self.step = start_step
 
@@ -77,8 +77,7 @@ def get_species_from_path(path: Path) -> str:
 
 
 def no_validation_splitter(items: typing.Sequence[typing.Any]) -> fastcore_list:
-    """
-    Split a DataBlock so that all the data is used for training.
+    """Split a DataBlock so that all the data is used for training.
 
     See notebooks/03-app.ipynb for a usage example.
     """
@@ -92,15 +91,25 @@ def create_reproducible_learner(
     dls_kwargs: dict[str, typing.Any] | None = None,
     learner_kwargs: dict[str, typing.Any] | None = None,
 ) -> Learner:
-    """
-    Create a learner that should yield reproducible results across runs.
+    """Create a learner that should yield reproducible results across runs.
 
-    :param arch: the architecture
-    :param dataset_path: the path of the dataset
-    :param db_kwargs: optional keyword arguments for the DataBlock
-    :param dls_kwargs: optional keyword arguments for the DataLoaders
-    :param learner_kwargs: optional keyword arguments for the Learner
-    :return: the learner, as produced by `vision_learner()`
+    Parameters
+    ----------
+    arch
+        the architecture
+    dataset_path
+        the path of the dataset
+    db_kwargs
+        optional keyword arguments for the DataBlock
+    dls_kwargs
+        optional keyword arguments for the DataLoaders
+    learner_kwargs
+        optional keyword arguments for the Learner
+
+    Returns
+    -------
+    Learner
+        the learner, as produced by `vision_learner()`
     """
     # See https://github.com/fastai/fastai/issues/2832#issuecomment-698759541
     set_seed(42, reproducible=True)
@@ -139,14 +148,22 @@ def _remove_cbs_of_types(learner: Learner, cb_types: list[type]) -> list[Callbac
 def get_learner_metrics_with_tta(
     learner: Learner, tta_prefix: str = "", **tta_kwargs: dict[str, typing.Any]
 ) -> dict[str, float]:
-    """
-    Use test-time augmentation to calculate the learner's metrics on the validation set.
+    """Return the learner's metrics on the validation set with test-time augmentation.
 
-    :param learner: The learner.
-    :param tta_prefix: prefix to set on the TTA metrics. If the default empty string is
-                       used, the TTA metrics may overwrite non-TTA metrics.
-    :param tta_kwargs: kwargs to pass to `learner.tta()`.
-    :return: dict mapping metric names to their values, including TTA metrics
+    Parameters
+    ----------
+    learner
+        The learner.
+    tta_prefix
+        prefix to set on the TTA metrics. If the default empty string is
+        used, the TTA metrics may overwrite non-TTA metrics.
+    **tta_kwargs
+        kwargs to pass to `learner.tta()`.
+
+    Returns
+    -------
+    dict[str, float]
+        mapping from metric names to their values, including TTA metrics
     """
     set_seed(13, reproducible=True)
     metric_values = dict(
@@ -173,19 +190,25 @@ def run_lr_find_experiment(
     show_plot: bool = False,
     disable_mlflow: bool = False,
 ) -> None:
-    """
-    Run a learning rate finder experiment.
+    """Run a learning rate finder experiment.
 
-    This includes initial fine tuning, then a series of learning rate finds.
+    This includes initial fine-tuning, then a series of learning rate finds.
 
-    :param learner: The learner to run the experiment on.
-    :param num_epochs_between_finds: The number of epochs between learning rate finds.
-    :param num_finds: The number of learning rate finds to run.
-    :param suggestion_method: The method to use for suggesting the learning rate
-                              (one of `SuggestionMethod.*`).
-    :param show_plot: If true, show the learning rate finder plot on every find.
-    :param disable_mlflow: If true, disable mlflow tracking by not adding back the
-                           MLflowCallback after each lr_find().
+    Parameters
+    ----------
+    learner
+        The learner to run the experiment on.
+    num_epochs_between_finds
+        The number of epochs between learning rate finds.
+    num_finds
+        The number of learning rate finds to run.
+    suggestion_method
+        Method to use for suggesting the learning rate (one of `SuggestionMethod.*`).
+    show_plot
+        If true, show the learning rate finder plot on every find.
+    disable_mlflow
+        If true, disable mlflow tracking by not adding back the MLflowCallback after
+        each lr_find().
     """
     if not disable_mlflow:
         mlflow.log_param("num_epochs_between_finds", num_epochs_between_finds)
@@ -222,15 +245,23 @@ def test_learner(
     labels: typing.Sequence[str],
     show_grid: tuple[int, int] = (4, 4),
 ) -> dict[str, float]:
-    """
-    Test a learner on an unseen set of images, optionally showing some predictions.
+    """Test a learner on an unseen set of images, optionally showing some predictions.
 
-    :param learner: The learner to test.
-    :param image_paths: The paths to the images to test.
-    :param labels: The labels for the images.
-    :param show_grid: The number of rows and columns to visualize; None to show nothing.
+    Parameters
+    ----------
+    learner
+        The learner to test.
+    image_paths
+        The paths to the images to test.
+    labels
+        The labels for the images.
+    show_grid
+        The number of rows and columns to visualize; None to show nothing.
 
-    :return: Mapping from top_k_accuracy metric name to its value.
+    Returns
+    -------
+    dict[str, float]
+        Mapping from top_k_accuracy metric name to its value.
     """
     test_dl = learner.dls.test_dl(image_paths)
     preds = learner.get_preds(dl=test_dl, reorder=False)[0]
@@ -257,8 +288,7 @@ def test_learner(
 
 
 class _SaveCheckpointCallback(Callback):  # type: ignore[misc]
-    """
-    A simplified version of SaveModelCallback.
+    """A simplified version of SaveModelCallback.
 
     Similarly to SaveModelCallback, this callback saves the model according to the
     every_epoch argument. Unlike SaveModelCallback, it overwrites the latest checkpoint
@@ -315,8 +345,7 @@ def resumable_fine_tune(
     div: float = 5.0,
     **kwargs: typing.Any,
 ) -> None:
-    """
-    Inline learner.fine_tune() to support resuming from a model checkpoint.
+    """Inline learner.fine_tune() to support resuming from a model checkpoint.
 
     Arguments are as for learner.fine_tune() with the addition of model_path. If that
     path exists with the '.ckpt' suffix, then it will be loaded and training will be
