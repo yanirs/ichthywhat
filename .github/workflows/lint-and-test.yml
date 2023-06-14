@@ -34,3 +34,30 @@ jobs:
 
       - name: Run tests
         run: poetry run pytest
+
+  test-docker-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab  # pin@v3.5.2
+
+      - name: Build API Docker image
+        run: docker build -t ichthywhat .
+
+      - name: List images
+        run: docker images
+
+      - name: Run API Docker container
+        run: docker run -d --env UVICORN_HOST=0.0.0.0 -p 127.0.0.1:8000:8000 ichthywhat:latest
+
+      # Retrying all errors because it's normal for the initial request to fail while
+      # the container is starting. This can probably be improved with Docker health
+      # checks, but it's good enough for the purpose of verifying that the Dockerfile
+      # builds correctly and serves the API.
+      - name: Check container API health
+        run: |
+          output=$(curl --retry-all-errors --retry 3 -sS http://localhost:8000/)
+          if [[ "$output" != '"Hello!"' ]]; then
+            echo "Test failed. Output is: $output"
+            exit 1
+          fi
