@@ -5,6 +5,7 @@ Originally inspired by https://community.wandb.ai/t/taking-fastai-to-production/
 """
 import io
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,24 @@ class OnnxWrapper:
             data=self._ort_sess.run([self._output_name], {self._input_name: img})[0][0],
             index=self._labels,
         ).sort_values(ascending=False)
+
+    def evaluate(
+        self,
+        image_paths: Sequence[Path],
+        labels: Sequence[str],
+        accuracy_top_ks: Sequence[int] = (1, 3, 10),
+    ) -> dict[str, float]:
+        """Return a mapping from k to accuracy@k for the given paths & labels."""
+        correct_at_k = {k: 0 for k in accuracy_top_ks}
+        for image_path, label in zip(image_paths, labels, strict=True):
+            predictions = self.predict(image_path)
+            for k in accuracy_top_ks:
+                if label in predictions[:k].index:
+                    correct_at_k[k] += 1
+        return {
+            f"top_{k}_accuracy": correct / len(image_paths)
+            for k, correct in correct_at_k.items()
+        }
 
     def _load_input_image(
         self, path_or_file: Path | io.BytesIO
