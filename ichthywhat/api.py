@@ -17,7 +17,7 @@ api.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-_onnx_wrapper = OnnxWrapper(DEFAULT_RESOURCES_PATH / "model.onnx")
+_onnx_wrapper: None | OnnxWrapper = None
 
 
 _DEMO_HTML = """
@@ -76,5 +76,8 @@ async def demo() -> HTMLResponse:
 @api.post("/predict")
 async def predict(img_file: UploadFile = File(...)) -> dict[str, float]:  # noqa: B008
     """Return a mapping from species name to score, based on the given image."""
+    global _onnx_wrapper
+    if not _onnx_wrapper:
+        _onnx_wrapper = OnnxWrapper(DEFAULT_RESOURCES_PATH / "model.onnx")
     img_bytes = BytesIO(await img_file.read())
     return _onnx_wrapper.predict(img_bytes).to_dict()  # type: ignore[no-any-return]
