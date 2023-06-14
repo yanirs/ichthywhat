@@ -14,6 +14,15 @@ repos:
   - id: check-merge-conflict
   - id: destroyed-symlinks
 
+- repo: local
+  hooks:
+  - id: check-poetry-lock
+    name: check poetry.lock consistency with pyproject.toml
+    language: system
+    entry: poetry lock --check
+    files: ^(poetry\.lock)|(pyproject\.toml)$
+    pass_filenames: false
+
 - repo: https://github.com/charliermarsh/ruff-pre-commit
   rev: '343c49ab887fa4e5724ceb86c9c3678e647c94c2'  # frozen: v0.0.262
   hooks:
