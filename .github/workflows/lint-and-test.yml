@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - master
-      - try/onnx-export
 
 jobs:
   lint-and-test:
@@ -51,6 +50,10 @@ jobs:
       - name: Run API Docker container
         run: docker run -d --env UVICORN_HOST=0.0.0.0 -p 127.0.0.1:8000:8000 ichthywhat:latest
 
+      # Retrying all errors because it's normal for the initial request to fail while
+      # the container is starting. This can probably be improved with Docker health
+      # checks, but it's good enough for the purpose of verifying that the Dockerfile
+      # builds correctly and serves the API.
       - name: Check container API health
         run: |
           output=$(curl --retry-all-errors --retry 3 -sS http://localhost:8000/)
