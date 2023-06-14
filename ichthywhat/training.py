@@ -106,7 +106,7 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
     # See: https://github.com/pytorch/pytorch/issues/42808
     onnx_model = onnx.load(str(export_path))
     onnx_model.metadata_props.append(
-        onnx.StringStringEntryProto(
+        onnx.StringStringEntryProto(  # type: ignore[attr-defined]
             key="labels", value=json.dumps(list(learner.dls.vocab))
         )
     )

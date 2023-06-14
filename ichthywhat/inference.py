@@ -6,6 +6,7 @@ Originally inspired by https://community.wandb.ai/t/taking-fastai-to-production/
 import io
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -34,7 +35,9 @@ class OnnxWrapper:
             index=self._labels,
         ).sort_values(ascending=False)
 
-    def _load_input_image(self, path_or_file: Path | io.BytesIO) -> np.ndarray:
+    def _load_input_image(
+        self, path_or_file: Path | io.BytesIO
+    ) -> np.ndarray[Any, np.dtype[np.float32]]:
         # Starting from an RGB image with uint8 values, resize it to self._img_size and
         # transform it to end up with an array of shape (1, 3, width, height) with
         # float32 values in the [0, 1] range.
