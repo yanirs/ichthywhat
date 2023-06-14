@@ -12,7 +12,7 @@ def run_cli() -> None:
         create_rls_species_dataset,
         create_test_dataset,
     )
-    from ichthywhat.training import train_app_model
+    from ichthywhat.training import export_learner_to_onnx, train_app_model
 
     logging.basicConfig(
         format="%(asctime)s [%(name)s.%(funcName)s:%(lineno)d] %(levelname)s: "
@@ -24,6 +24,7 @@ def run_cli() -> None:
             create_rls_genus_dataset,
             create_rls_species_dataset,
             create_test_dataset,
+            export_learner_to_onnx,
             train_app_model,
         ]
     )
