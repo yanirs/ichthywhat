@@ -28,12 +28,9 @@ class OnnxWrapper:
 
     def predict(self, img_path_or_file: Path | io.BytesIO) -> pd.Series:
         """Return a series mapping labels to sorted predictions for the image."""
-        img_arr = np.array(Image.open(img_path_or_file), dtype=np.uint8)
-        img_batch = np.expand_dims(img_arr, 0)
+        img = np.array(Image.open(img_path_or_file), dtype=np.uint8)
         return pd.Series(
-            data=self._ort_sess.run([self._output_name], {self._input_name: img_batch})[
-                0
-            ][0],
+            data=self._ort_sess.run([self._output_name], {self._input_name: img})[0],
             index=self._labels,
         ).sort_values(ascending=False)
 
@@ -46,7 +43,7 @@ class OnnxWrapper:
         """Return a mapping from k to accuracy@k for the given paths & labels."""
         # Note: this can be done more efficiently by batching images, but one image at
         # a time is good enough given that this function is only run for evaluation
-        # purposes.
+        # purposes. Also, batch support was removed from the model for simplicity.
         correct_at_k = {k: 0 for k in accuracy_top_ks}
         for image_path, label in zip(image_paths, labels, strict=True):
             predictions = self.predict(image_path)

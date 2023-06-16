@@ -66,14 +66,21 @@ def train_app_model(
 
 
 class _RgbUint8ImgToTensor(torch.nn.Module):
-    """Convert uint8 RGB image batch to a float32 batch in [0, 1].
+    """Convert uint8 RGB image to a float32 batch in [0, 1].
 
-    Input shape: B x H x W x C
-    Output shape: B x C x H x W
+    Input shape: H x W x C
+    Output shape: 1 x C x H x W
     """
 
     def forward(self, rgb_uint8_img):
-        return (rgb_uint8_img.to(torch.float32) / 255).permute(0, 3, 1, 2)
+        return (rgb_uint8_img.to(torch.float32) / 255).permute(2, 0, 1).unsqueeze(0)
+
+
+class _SqueezeBatch(torch.nn.Module):
+    """Squeeze out the batch to go from shape 1 x classes to a flat array."""
+
+    def forward(self, batch):
+        return batch.squeeze(0)
 
 
 def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
@@ -92,6 +99,7 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
             "Rectangular inputs require more testing (unsure about the dimension order)"
         )
     model = torch.nn.Sequential(
+        # Assume we're working with one RGB image at a time rather than batches.
         _RgbUint8ImgToTensor(),
         # ONNX exports with antialias=True are unsupported with opset_version=16, but
         # antialias=False yields the same performance on the QUT dataset as using PIL's
@@ -107,26 +115,23 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
         learner.model.eval(),
         # Replace fastai's softmax layer.
         torch.nn.Softmax(dim=1),
+        # Remove the batch dimension added by the model to keep the output simple.
+        _SqueezeBatch(),
     )
     torch.onnx.export(
         model,
-        # Sample input: The batch size, height, and width don't really matter because
-        # they're dynamic.
+        # Sample input: Height and width don't really matter because they're dynamic.
         torch.randint(
             low=0,
             high=255,
-            size=(batch_size * 2, height // 2, width * 3, num_channels),
+            size=(height // 2, width * 3, num_channels),
             dtype=torch.uint8,
         ),
         str(export_path),
         input_names=["input"],
         output_names=["output"],
-        # Allow batches of variable length and images of any size, but still require a
-        # fixed number of channels.
-        dynamic_axes={
-            "input": {0: "batch_size", 1: "height", 2: "width"},
-            "output": {0: "batch_size"},
-        },
+        # Allow input images of any size, but still require a fixed number of channels.
+        dynamic_axes={"input": {0: "height", 1: "width"}},
         # Use the maximum supported version.
         opset_version=16,
     )
