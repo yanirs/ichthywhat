@@ -65,11 +65,27 @@ def train_app_model(
     learner.export(exported_model_path)
 
 
+class RgbIntImgToTensor(torch.nn.Module):
+    def forward(self, rgb_int_img):
+        return (rgb_int_img.to(torch.float32) / 255).permute(0, 3, 1, 2)
+
+
 def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
     """Export learner to an ONNX model and persist it to export_path."""
     learner = load_learner(learner_path)
+    # This is a somewhat convoluted way to get the shape of the input, but better than
+    # hard-coding it. There may be a better way to inspect the DataLoaders, but it's
+    # hard with the usual fastai maze of dynamic attributes and methods.
+    batch_size, num_channels, height, width = (
+        learner.dls.test_dl([torch.Tensor([0])], num_workers=0).one_batch()[0].shape
+    )
+    assert batch_size == 1
+    assert num_channels == 3
+    if height != width:
+        raise ValueError("Rectangular images require more tests")
     model = torch.nn.Sequential(
-        # TODO: add more steps from OnnxWrapper._load_input_image()?
+        RgbIntImgToTensor(),
+        # TODO: add the resize here -- will need dynamic axes for inputs
         # Replace fastai's normalisation. Tested only with resnet18 (these are ImageNet
         # stats), so other models might not have the step.
         torchvision.transforms.Normalize(
@@ -81,19 +97,14 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
         # Replace fastai's softmax layer.
         torch.nn.Softmax(dim=1),
     )
-    # This is a somewhat convoluted way to get the shape of the input, but better than
-    # hard-coding it. There may be a better way to inspect the DataLoaders, but it's
-    # hard with the usual fastai maze of dynamic attributes and methods.
-    input_shape = (
-        learner.dls.test_dl([torch.Tensor([0])], num_workers=0).one_batch()[0].shape
-    )
-    if input_shape[-1] != input_shape[-2]:
-        raise ValueError(
-            "Rectangular images require more tests (see OnnxWrapper._load_input_image)"
-        )
     torch.onnx.export(
         model,
-        torch.randn(input_shape),
+        torch.randint(
+            low=0,
+            high=255,
+            size=(batch_size, height, width, num_channels),
+            dtype=torch.uint8,
+        ),
         str(export_path),
         input_names=["input"],
         output_names=["output"],
@@ -104,6 +115,7 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
     )
     # Looks like there isn't an easy way to specify the labels as part of the export.
     # See: https://github.com/pytorch/pytorch/issues/42808
+    # TODO: can add a mapping operation that'd output a dict?
     onnx_model = onnx.load(str(export_path))
     onnx_model.metadata_props.append(
         onnx.StringStringEntryProto(  # type: ignore[attr-defined]
