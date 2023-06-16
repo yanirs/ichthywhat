@@ -23,15 +23,12 @@ class OnnxWrapper:
         self._labels = json.loads(
             self._ort_sess.get_modelmeta().custom_metadata_map["labels"]
         )
-        self._img_size = self._ort_sess.get_inputs()[0].shape[1:3]
         self._input_name = self._ort_sess.get_inputs()[0].name
         self._output_name = self._ort_sess.get_outputs()[0].name
 
     def predict(self, img_path_or_file: Path | io.BytesIO) -> pd.Series:
         """Return a series mapping labels to sorted predictions for the image."""
-        img_arr = np.array(
-            Image.open(img_path_or_file).resize(self._img_size), dtype=np.uint8
-        )
+        img_arr = np.array(Image.open(img_path_or_file), dtype=np.uint8)
         img_batch = np.expand_dims(img_arr, 0)
         return pd.Series(
             data=self._ort_sess.run([self._output_name], {self._input_name: img_batch})[

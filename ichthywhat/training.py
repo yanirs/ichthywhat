@@ -65,9 +65,15 @@ def train_app_model(
     learner.export(exported_model_path)
 
 
-class RgbIntImgToTensor(torch.nn.Module):
-    def forward(self, rgb_int_img):
-        return (rgb_int_img.to(torch.float32) / 255).permute(0, 3, 1, 2)
+class _RgbUint8ImgToTensor(torch.nn.Module):
+    """Convert uint8 RGB image batch to a float32 batch in [0, 1].
+
+    Input shape: B x H x W x C
+    Output shape: B x C x H x W
+    """
+
+    def forward(self, rgb_uint8_img):
+        return (rgb_uint8_img.to(torch.float32) / 255).permute(0, 3, 1, 2)
 
 
 def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
@@ -82,10 +88,15 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
     assert batch_size == 1
     assert num_channels == 3
     if height != width:
-        raise ValueError("Rectangular images require more tests")
+        raise ValueError(
+            "Rectangular inputs require more testing (unsure about the dimension order)"
+        )
     model = torch.nn.Sequential(
-        RgbIntImgToTensor(),
-        # TODO: add the resize here -- will need dynamic axes for inputs
+        _RgbUint8ImgToTensor(),
+        # ONNX exports with antialias=True are unsupported with opset_version=16, but
+        # antialias=False yields the same performance on the QUT dataset as using PIL's
+        # resizing.
+        torchvision.transforms.Resize((height, width), antialias=False),
         # Replace fastai's normalisation. Tested only with resnet18 (these are ImageNet
         # stats), so other models might not have the step.
         torchvision.transforms.Normalize(
@@ -99,17 +110,23 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
     )
     torch.onnx.export(
         model,
+        # Sample input: The batch size, height, and width don't really matter because
+        # they're dynamic.
         torch.randint(
             low=0,
             high=255,
-            size=(batch_size, height, width, num_channels),
+            size=(batch_size * 2, height // 2, width * 3, num_channels),
             dtype=torch.uint8,
         ),
         str(export_path),
         input_names=["input"],
         output_names=["output"],
-        # Allow variable length batches, but still require fixed image sizes.
-        dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+        # Allow batches of variable length and images of any size, but still require a
+        # fixed number of channels.
+        dynamic_axes={
+            "input": {0: "batch_size", 1: "height", 2: "width"},
+            "output": {0: "batch_size"},
+        },
         # Use the maximum supported version.
         opset_version=16,
     )
