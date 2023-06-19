@@ -186,36 +186,6 @@ def _get_selected_area_info(
     )
 
 
-@st.cache_resource
-def _load_resources(
-    resources_path: Path = DEFAULT_RESOURCES_PATH, local_jsons: bool = False
-) -> tuple[pd.DataFrame, pd.DataFrame, Learner]:
-    """Load and cache all the static resources used by the streamlit app.
-
-    Parameters
-    ----------
-    resources_path
-        path of the resource directory.
-    local_jsons
-        if True, append `/local` when loading the survey & species DataFrames.
-
-    Returns
-    -------
-    pd.DataFrame
-        the species DataFrame.
-    pd.DataFrame
-        the site DataFrame.
-    Learner
-        the classification model.
-    """
-    model = load_learner(resources_path / "model.pkl")
-    if local_jsons:
-        resources_path /= "local"
-    species_df = _load_species_df(resources_path / "api-species.json")
-    site_df = _load_site_df(resources_path / "api-site-surveys.json", species_df)
-    return species_df, site_df, model
-
-
 def _display_basic_inputs(opts: AppOptions, site_df: pd.DataFrame) -> None:
     # Unfortunately, this hack is needed to get the logo to display nicely.
     st.markdown(
