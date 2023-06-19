@@ -488,7 +488,11 @@ def _display_results(
             image_columns = st.columns(3)
             for image_index, image_path_or_url in enumerate(match.images):
                 with image_columns[image_index % 3]:
-                    st.image(opts.img_root + image_path_or_url)
+                    st.image(
+                        image_path_or_url.replace("/img/", opts.img_root)
+                        if opts.img_root
+                        else image_path_or_url
+                    )
 
             # Only show a sidebar entry for the top match.
             if opts.show_navigation_sidebar and not match.Index:
