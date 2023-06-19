@@ -4,6 +4,7 @@ Thin ONNX wrapper for inference in production.
 Originally inspired by https://community.wandb.ai/t/taking-fastai-to-production/1705
 """
 import io
+import json
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -19,6 +20,9 @@ class OnnxWrapper:
     def __init__(self, model_path: Path):
         """Load the ONNX model and prepare for inference."""
         self._ort_sess = InferenceSession(str(model_path))
+        self._labels = json.loads(
+            self._ort_sess.get_modelmeta().custom_metadata_map["labels"]
+        )
         self._input_name = self._ort_sess.get_inputs()[0].name
         self._output_name = self._ort_sess.get_outputs()[0].name
 
@@ -26,7 +30,8 @@ class OnnxWrapper:
         """Return a series mapping labels to sorted predictions for the image."""
         img = np.array(Image.open(img_path_or_file), dtype=np.uint8)
         return pd.Series(
-            self._ort_sess.run([self._output_name], {self._input_name: img})[0][0]
+            data=self._ort_sess.run([self._output_name], {self._input_name: img})[0],
+            index=self._labels,
         ).sort_values(ascending=False)
 
     def evaluate(
