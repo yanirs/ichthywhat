@@ -1,5 +1,4 @@
 """Training and persistence for models that get served."""
-import json
 from pathlib import Path
 
 import onnx
@@ -128,20 +127,33 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
             dtype=torch.uint8,
         ),
         str(export_path),
-        input_names=["input"],
-        output_names=["output"],
+        input_names=["rgb_image"],
+        output_names=["class_probabilities"],
         # Allow input images of any size, but still require a fixed number of channels.
-        dynamic_axes={"input": {0: "height", 1: "width"}},
+        dynamic_axes={"rgb_image": {0: "height", 1: "width"}},
         # Use the maximum supported version.
         opset_version=16,
     )
     # Looks like there isn't an easy way to specify the labels as part of the export.
     # See: https://github.com/pytorch/pytorch/issues/42808
-    # TODO: can add a mapping operation that'd output a dict?
+    # Instead, we add a ZipMap that turns the list of predicted probabilities into a
+    # mapping from class name to probability.
     onnx_model = onnx.load(str(export_path))
-    onnx_model.metadata_props.append(
-        onnx.StringStringEntryProto(  # type: ignore[attr-defined]
-            key="labels", value=json.dumps(list(learner.dls.vocab))
-        )
+    # Need to explicitly add the opsetid and domain to use ZipMap.
+    # See https://stackoverflow.com/a/68504343
+    onnx_model.opset_import.append(onnx.helper.make_opsetid("ai.onnx.ml", 1))
+    zipmap_node = onnx.helper.make_node(
+        "ZipMap",
+        inputs=[onnx_model.graph.output[0].name],
+        outputs=["class_to_probability"],
+        classlabels_strings=list(learner.dls.vocab),
+        domain="ai.onnx.ml",
+    )
+    onnx_model.graph.node.append(zipmap_node)
+    # Remove the output info set by torch.onnx.export() and set it to the zipmap_node.
+    # See https://github.com/microsoft/onnxruntime/issues/1455#issuecomment-514805365
+    onnx_model.graph.output.pop()
+    onnx_model.graph.output.append(
+        onnx.helper.ValueInfoProto(name=zipmap_node.output[0])
     )
     onnx.save(onnx_model, str(export_path))
