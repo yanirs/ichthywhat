@@ -1,4 +1,5 @@
 """Training and persistence for models that get served."""
+import json
 from pathlib import Path
 
 import onnx
@@ -136,26 +137,13 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
     )
     # Looks like there isn't an easy way to specify the labels as part of the export.
     # See: https://github.com/pytorch/pytorch/issues/42808
-    # Instead, we add a ZipMap that turns the list of predicted probabilities into a
-    # mapping from class name to probability.
+    # It's possible to make the final output a mapping from label to probability, but
+    # this isn't supported by all platforms.
+    # TODO: revert https://github.com/yanirs/ichthywhat/pull/25 when it is supported
     onnx_model = onnx.load(str(export_path))
-    # Need to explicitly add the opsetid and domain to use ZipMap.
-    # See https://stackoverflow.com/a/68504343
-    onnx_model.opset_import.append(onnx.helper.make_opsetid("ai.onnx.ml", 1))
-    zipmap_node = onnx.helper.make_node(
-        "ZipMap",
-        inputs=[onnx_model.graph.output[0].name],
-        outputs=["class_to_probability"],
-        classlabels_strings=list(learner.dls.vocab),
-        domain="ai.onnx.ml",
-    )
-    onnx_model.graph.node.append(zipmap_node)
-    # Remove the output info set by torch.onnx.export() and set it to the zipmap_node.
-    # See https://github.com/microsoft/onnxruntime/issues/1455#issuecomment-514805365
-    onnx_model.graph.output.pop()
-    onnx_model.graph.output.append(
-        onnx.helper.ValueInfoProto(  # type: ignore[attr-defined]
-            name=zipmap_node.output[0]
+    onnx_model.metadata_props.append(
+        onnx.StringStringEntryProto(  # type: ignore[attr-defined]
+            key="labels", value=json.dumps(list(learner.dls.vocab))
         )
     )
     onnx.save(onnx_model, str(export_path))
