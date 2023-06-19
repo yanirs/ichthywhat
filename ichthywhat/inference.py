@@ -3,7 +3,6 @@ Thin ONNX wrapper for inference in production.
 
 Originally inspired by https://community.wandb.ai/t/taking-fastai-to-production/1705
 """
-import io
 import json
 from collections.abc import Sequence
 from pathlib import Path
@@ -26,11 +25,12 @@ class OnnxWrapper:
         self._input_name = self._ort_sess.get_inputs()[0].name
         self._output_name = self._ort_sess.get_outputs()[0].name
 
-    def predict(self, img_path_or_file: Path | io.BytesIO) -> pd.Series:
+    def predict(self, img: Image.Image) -> pd.Series:
         """Return a series mapping labels to sorted predictions for the image."""
-        img = np.array(Image.open(img_path_or_file), dtype=np.uint8)
         return pd.Series(
-            data=self._ort_sess.run([self._output_name], {self._input_name: img})[0],
+            data=self._ort_sess.run(
+                [self._output_name], {self._input_name: np.array(img, dtype=np.uint8)}
+            )[0],
             index=self._labels,
         ).sort_values(ascending=False)
 
@@ -46,7 +46,7 @@ class OnnxWrapper:
         # purposes. Also, batch support was removed from the model for simplicity.
         correct_at_k = {k: 0 for k in accuracy_top_ks}
         for image_path, label in zip(image_paths, labels, strict=True):
-            predictions = self.predict(image_path)
+            predictions = self.predict(Image.open(image_path))
             for k in accuracy_top_ks:
                 if label in predictions[:k].index:
                     correct_at_k[k] += 1

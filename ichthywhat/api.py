@@ -4,6 +4,7 @@ from io import BytesIO
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image
 from starlette.responses import HTMLResponse
 
 from ichthywhat.constants import DEFAULT_RESOURCES_PATH
@@ -79,5 +80,5 @@ async def predict(img_file: UploadFile = File(...)) -> dict[str, float]:  # noqa
     global _onnx_wrapper
     if not _onnx_wrapper:
         _onnx_wrapper = OnnxWrapper(DEFAULT_RESOURCES_PATH / "model.onnx")
-    img_bytes = BytesIO(await img_file.read())
-    return _onnx_wrapper.predict(img_bytes).to_dict()  # type: ignore[no-any-return]
+    img = Image.open(BytesIO(await img_file.read()))
+    return _onnx_wrapper.predict(img).to_dict()  # type: ignore[no-any-return]

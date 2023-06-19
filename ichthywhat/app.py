@@ -12,10 +12,12 @@ import streamlit as st
 from fastai.learner import Learner, load_learner
 from fastai.vision.core import PILImage
 from geopy.distance import geodesic
+from PIL import Image
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 from streamlit_cropper import st_cropper
 
 from ichthywhat.constants import DEFAULT_RESOURCES_PATH
+from ichthywhat.inference import OnnxWrapper
 
 _ABOUT_TEXT: Final[
     str
@@ -63,13 +65,26 @@ def main() -> None:
             "About": _ABOUT_TEXT,
         },
     )
-    species_df, site_df, model = _load_resources(local_jsons=opts.dev_mode)
+    model = _load_model(opts.dev_mode)
+    df_path = (
+        DEFAULT_RESOURCES_PATH / "local" if opts.dev_mode else DEFAULT_RESOURCES_PATH
+    )
+    species_df = _load_species_df(df_path / "api-species.json")
+    site_df = _load_site_df(df_path / "api-site-surveys.json", species_df)
     _display_basic_inputs(opts, site_df)
     _display_selected_area_info(opts, site_df)
     _display_view_options(opts)
     _display_results(opts, species_df, model)
 
 
+@st.cache_resource
+def _load_model(dev_mode: bool) -> Learner | OnnxWrapper:
+    if dev_mode:
+        return load_learner(DEFAULT_RESOURCES_PATH / "model.pkl")
+    return OnnxWrapper(DEFAULT_RESOURCES_PATH / "model.onnx")
+
+
+@st.cache_resource
 def _load_species_df(path_or_url: str | Path) -> pd.DataFrame:
     """Load the species DataFrame from the JSON used for other RLS tools.
 
@@ -91,6 +106,7 @@ def _load_species_df(path_or_url: str | Path) -> pd.DataFrame:
     return species_df
 
 
+@st.cache_resource
 def _load_site_df(path_or_url: str | Path, species_df: pd.DataFrame) -> pd.DataFrame:
     """Load the site DataFrame from the JSON used for other RLS tools.
 
@@ -319,8 +335,21 @@ def _display_view_options(opts: AppOptions) -> None:
     )
 
 
+def _classify_image(model: Learner | OnnxWrapper, img: Image.Image) -> pd.DataFrame:
+    if isinstance(model, OnnxWrapper):
+        return pd.DataFrame(dict(probability=model.predict(img))).reset_index(
+            names="name"
+        )
+    return pd.DataFrame(
+        dict(
+            probability=model.predict(PILImage(img))[2],
+            name=model.dls.vocab,
+        )
+    ).sort_values("probability", ascending=False)
+
+
 def _display_results(
-    opts: AppOptions, species_df: pd.DataFrame, model: Learner
+    opts: AppOptions, species_df: pd.DataFrame, model: Learner | OnnxWrapper
 ) -> None:
     if opts.show_navigation_sidebar and opts.uploaded_files:
         st.sidebar.markdown("[:small_red_triangle: Top](#ichthy-what-fishy-photo-id)")
@@ -336,6 +365,7 @@ def _display_results(
         cropped_img = st_cropper(PILImage.create(uploaded_file), box_color="red")
         cropped_img_columns = st.columns(3)
         if opts.dev_mode:
+            assert isinstance(model, Learner)
             # Prepare the cropped image for download in dev mode, where there's a
             # download button for each ID.
             with io.BytesIO() as cropped_img_file:
@@ -411,13 +441,7 @@ def _display_results(
             key=f"name-filter-{file_index + 1}",
         ).strip()
 
-        matches = pd.DataFrame(
-            dict(
-                probability=model.predict(PILImage(cropped_img))[2],
-                name=model.dls.vocab,
-            )
-        )
-        matches = matches.merge(species_df, on="name")
+        matches = _classify_image(model, cropped_img).merge(species_df, on="name")
         if name_filter:
             matches = matches[
                 matches["name"].str.contains(name_filter, case=False)
@@ -429,12 +453,7 @@ def _display_results(
                 left_on="name",
                 right_index=True,
             )
-
-        matches = (
-            matches.sort_values("probability", ascending=False)
-            .head(opts.num_matches)
-            .reset_index(drop=True)
-        )
+        matches = matches.head(opts.num_matches).reset_index(drop=True)
         for match in matches.itertuples():
             if opts.selected_site_info.empty:
                 site_freq_str = "N/A"
