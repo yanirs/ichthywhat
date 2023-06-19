@@ -71,14 +71,14 @@ class _RgbUint8ImgToTensor(torch.nn.Module):
     Output shape: 1 x C x H x W
     """
 
-    def forward(self, rgb_uint8_img):
+    def forward(self, rgb_uint8_img: torch.Tensor) -> torch.Tensor:
         return (rgb_uint8_img.to(torch.float32) / 255).permute(2, 0, 1).unsqueeze(0)
 
 
 class _SqueezeBatch(torch.nn.Module):
     """Squeeze out the batch to go from shape 1 x classes to a flat array."""
 
-    def forward(self, batch):
+    def forward(self, batch: torch.Tensor) -> torch.Tensor:
         return batch.squeeze(0)
 
 
@@ -154,6 +154,8 @@ def export_learner_to_onnx(learner_path: Path, export_path: Path) -> None:
     # See https://github.com/microsoft/onnxruntime/issues/1455#issuecomment-514805365
     onnx_model.graph.output.pop()
     onnx_model.graph.output.append(
-        onnx.helper.ValueInfoProto(name=zipmap_node.output[0])
+        onnx.helper.ValueInfoProto(  # type: ignore[attr-defined]
+            name=zipmap_node.output[0]
+        )
     )
     onnx.save(onnx_model, str(export_path))
