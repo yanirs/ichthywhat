@@ -61,3 +61,13 @@ jobs:
             echo "Test failed. Output is: $output"
             exit 1
           fi
+
+      # Checking for the probability of the top result on a known image.
+      - name: Check prediction works
+        run: |
+          full_response=$(curl -sS -X POST -F "img_file=@tests/pterois-volitans.jpg" http://localhost:8000/predict | jq)
+          jq_check_result=$(echo "$full_response" | jq '.["Pterois volitans"] > 0.85')
+          if [[ "$jq_check_result" != 'true' ]]; then
+            echo -e "Test failed. Check result: $jq_check_result\nFull response:\n$full_response"
+            exit 1
+          fi
