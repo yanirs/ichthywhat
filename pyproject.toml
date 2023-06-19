@@ -19,7 +19,6 @@ uvicorn = "~=0.21.1"
 python-multipart = "~=0.0.6"
 # API inference dependencies
 onnxruntime = "~=1.14.1"
-pandas = "~=1.5.3"
 pillow = "~=9.4.0"
 
 # For simplicity, all the non-API depedencies are in the dev group.

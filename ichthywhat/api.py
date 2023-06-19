@@ -1,5 +1,6 @@
 """Basic classification API."""
 import os
+from collections import OrderedDict
 from io import BytesIO
 
 from fastapi import FastAPI, File, UploadFile
@@ -75,10 +76,12 @@ async def demo() -> HTMLResponse:
 
 
 @api.post("/predict")
-async def predict(img_file: UploadFile = File(...)) -> dict[str, float]:  # noqa: B008
+async def predict(
+    img_file: UploadFile = File(...),  # noqa: B008
+) -> OrderedDict[str, float]:
     """Return a mapping from species name to score, based on the given image."""
     global _onnx_wrapper
     if not _onnx_wrapper:
         _onnx_wrapper = OnnxWrapper(DEFAULT_RESOURCES_PATH / "model.onnx")
     img = Image.open(BytesIO(await img_file.read()))
-    return _onnx_wrapper.predict(img).to_dict()  # type: ignore[no-any-return]
+    return _onnx_wrapper.predict(img)

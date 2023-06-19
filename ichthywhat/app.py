@@ -337,9 +337,9 @@ def _display_view_options(opts: AppOptions) -> None:
 
 def _classify_image(model: Learner | OnnxWrapper, img: Image.Image) -> pd.DataFrame:
     if isinstance(model, OnnxWrapper):
-        return pd.DataFrame(dict(probability=model.predict(img))).reset_index(
-            names="name"
-        )
+        return pd.DataFrame(
+            pd.Series(model.predict(img), name="probability")
+        ).reset_index(names="name")
     return pd.DataFrame(
         dict(
             probability=model.predict(PILImage(img))[2],
