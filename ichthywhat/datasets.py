@@ -1,11 +1,14 @@
 """Dataset handling functionality."""
-
 import shutil
-from collections import Counter
+from collections import Counter, defaultdict
+from collections.abc import Sequence
+from hashlib import md5
+from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
-from PIL import Image
+import requests
+from PIL import Image, UnidentifiedImageError
 
 
 def create_rls_genus_dataset(
@@ -43,7 +46,7 @@ def create_rls_genus_dataset(
             _crop_image_file(src_filename, output_dir / src_filename.name)
 
 
-def create_rls_species_dataset(
+def create_rls_species_dataset_from_local(
     *,
     m1_csv_path: Path,
     image_dir: Path,
@@ -112,14 +115,79 @@ def create_rls_species_dataset(
             _crop_image_file(src_filename, output_dir / src_filename.name)
 
 
-def _crop_image_file(src: Path, dst: Path, top_bottom_pixels: int = 55) -> None:
+def create_rls_species_dataset_from_api(
+    *,
+    output_dir: Path,
+    species_json_url: str = "https://raw.githubusercontent.com/yanirs/rls-data/master/output/species.json",
+    methods: Sequence[int] = (1,),
+) -> None:
+    """Create a dataset directory from the API species.json.
+
+    Images are cropped to remove the RLS URL. Duplicate images within a species are
+    ignored, while cross-species duplicates are removed.
+
+    Parameters
+    ----------
+    output_dir
+        Path of the output directory, which must not exist.
+    species_json_url
+        URL of the species.json, defaulting to the latest rls-data repo version. This
+        can be used to regenerate a dataset based on a historical version of the JSON.
+
+
+    Methods
+    -------
+        Only species that are counted with these RLS methods are included.
+    """
+    output_dir.mkdir(parents=True)
+    all_species = requests.get(f"{species_json_url}").json()
+    hash_to_image_paths = defaultdict(list)
+    for species in all_species:
+        species_str = (
+            f"{species['scientific_name']} "
+            f"(https://reeflifesurvey.com/species/{species['slug']}/)"
+        )
+        if "methods" not in species:
+            assert "class" not in species
+            print(f"Missing method & class for {species_str}")
+            continue
+        if not set(species["methods"]).intersection(methods):
+            continue
+        species_image_hashes = set()
+        for photo in species.get("photos", []):
+            image_bytes = requests.get(photo["large_url"]).content
+            image_hash = md5(image_bytes).hexdigest()
+            if image_hash in species_image_hashes:
+                print(f"Found duplicate photo for {species_str}")
+                continue
+            image_path = output_dir / f"{species['slug']}-{image_hash}.jpg"
+            try:
+                _crop_image_file(BytesIO(image_bytes), image_path)
+            except UnidentifiedImageError:
+                print(f"Couldn't load {photo['large_url']} for {species_str}")
+                continue
+            species_image_hashes.add(image_hash)
+            hash_to_image_paths[image_hash].append(image_path)
+    # Remove images that are reused across species.
+    for image_paths in hash_to_image_paths.values():
+        if len(image_paths) > 1:
+            for image_path in image_paths:
+                print(f"Deleting duplicate image: {image_path.name}")
+                image_path.unlink()
+
+
+def _crop_image_file(
+    src: Path | BytesIO, dst: Path, top_bottom_pixels: int = 55
+) -> None:
     """Crop the top and bottom of an image.
 
     The default pixel count is useful for removing the RLS URL.
     """
     with Image.open(src) as im:
         width, height = im.size
-        im.crop((0, top_bottom_pixels, width, height - top_bottom_pixels)).save(dst)
+        im.crop((0, top_bottom_pixels, width, height - top_bottom_pixels)).convert(
+            "RGB"
+        ).save(dst)
 
 
 def create_test_dataset(*, trip_dir: Path, output_dir: Path) -> None:
