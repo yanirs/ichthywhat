@@ -20,6 +20,7 @@ def run_cli() -> None:
         "%(message)s",
         level=logging.INFO,
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     defopt.run(
         [
             create_rls_genus_dataset,
