@@ -151,6 +151,9 @@ def create_rls_species_dataset_from_api(
             assert "class" not in species
             print(f"Missing method & class for {species_str}")
             continue
+        if species["slug"].count("-") != 1:
+            print(f"Skipping non-binomial {species_str}")
+            continue
         if not set(species["methods"]).intersection(methods):
             continue
         species_image_hashes = set()
