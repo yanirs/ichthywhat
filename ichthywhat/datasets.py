@@ -119,7 +119,8 @@ def create_rls_species_dataset_from_api(
     *,
     output_dir: Path,
     species_json_url: str = "https://raw.githubusercontent.com/yanirs/rls-data/master/output/species.json",
-    methods: Sequence[int] = (1,),
+    rls_methods: Sequence[int] = (1,),
+    request_timeout_secs: int = 60,
 ) -> None:
     """Create a dataset directory from the API species.json.
 
@@ -133,14 +134,15 @@ def create_rls_species_dataset_from_api(
     species_json_url
         URL of the species.json, defaulting to the latest rls-data repo version. This
         can be used to regenerate a dataset based on a historical version of the JSON.
-
-
-    Methods
-    -------
+    rls_methods
         Only species that are counted with these RLS methods are included.
+    request_timeout_secs
+        Timeout in seconds for getting the species JSON and image files.
     """
     output_dir.mkdir(parents=True)
-    all_species = requests.get(f"{species_json_url}").json()
+    all_species = requests.get(
+        f"{species_json_url}", timeout=request_timeout_secs
+    ).json()
     hash_to_image_paths = defaultdict(list)
     for species in all_species:
         species_str = (
@@ -154,12 +156,14 @@ def create_rls_species_dataset_from_api(
         if species["slug"].count("-") != 1:
             print(f"Skipping non-binomial {species_str}")
             continue
-        if not set(species["methods"]).intersection(methods):
+        if not set(species["methods"]).intersection(rls_methods):
             continue
         species_image_hashes = set()
         for photo in species.get("photos", []):
-            image_bytes = requests.get(photo["large_url"]).content
-            image_hash = md5(image_bytes).hexdigest()
+            image_bytes = requests.get(
+                photo["large_url"], timeout=request_timeout_secs
+            ).content
+            image_hash = md5(image_bytes).hexdigest()  # noqa: S324
             if image_hash in species_image_hashes:
                 print(f"Found duplicate photo for {species_str}")
                 continue
