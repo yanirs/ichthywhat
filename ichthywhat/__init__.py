@@ -9,7 +9,8 @@ def run_cli() -> None:
 
     from ichthywhat.datasets import (
         create_rls_genus_dataset,
-        create_rls_species_dataset,
+        create_rls_species_dataset_from_api,
+        create_rls_species_dataset_from_local,
         create_test_dataset,
     )
     from ichthywhat.training import export_learner_to_onnx, train_app_model
@@ -19,10 +20,12 @@ def run_cli() -> None:
         "%(message)s",
         level=logging.INFO,
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     defopt.run(
         [
             create_rls_genus_dataset,
-            create_rls_species_dataset,
+            create_rls_species_dataset_from_api,
+            create_rls_species_dataset_from_local,
             create_test_dataset,
             export_learner_to_onnx,
             train_app_model,

@@ -74,14 +74,19 @@ Use MLflow:
 
 ## Command line interface
 
-Create an RLS species dataset:
+Create an RLS species dataset (legacy &ndash; from local files):
 
-    $ poetry run ichthywhat create-rls-species-dataset \
+    $ poetry run ichthywhat create-rls-species-dataset-from-local \
         --m1-csv-path ~/projects/fish-id/data/dump-20210717/m1.csv \
         --image-dir ~/projects/yanirs.github.io/tools/rls/img \
         --output-dir data/rls-species-25-min-images-3/ \
         --num-species 25 \
         --min-images-per-species 3
+
+Create an RLS species dataset (new &ndash; from API):
+
+    $ poetry run ichthywhat create-rls-species-dataset-from-api \
+        --output-dir data/rls-species-m1/
 
 Create an RLS genus dataset:
 
