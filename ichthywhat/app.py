@@ -24,7 +24,7 @@ _ABOUT_TEXT: Final[
 ] = """
     This is an _experimental_ web app for fish identification using underwater photos.
     It uses deep learning to find the species that best match the uploaded photos, out
-    of over two thousand species recorded on
+    of over three thousand species recorded on
     [Reef Life Survey](https://reeflifesurvey.com/) dives.
 
     Feedback is very welcome! Please send any comments via the
