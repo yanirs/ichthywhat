@@ -14,7 +14,11 @@ from ichthywhat.constants import DEFAULT_MODELS_PATH
 
 
 def train_app_model(
-    dataset_path: Path, model_version: int, models_path: Path = DEFAULT_MODELS_PATH
+    dataset_path: Path,
+    model_version: int,
+    models_path: Path = DEFAULT_MODELS_PATH,
+    epochs_override: int | None = None,
+    freeze_epochs_override: int | None = None,
 ) -> None:
     """Train and persist a model with hardcoded settings to be used in the app / api.
 
@@ -29,6 +33,10 @@ def train_app_model(
         under models_path.
     models_path
         the directory where the model will be persisted.
+    epochs_override
+        number of epochs to train the unfrozen model.
+    freeze_epochs_override
+        number of epochs to train the frozen model.
     """
     # This import is needed because of some magic patching done by fastai. Training
     # fails without it.
@@ -43,7 +51,10 @@ def train_app_model(
             learner_kwargs=dict(cbs=None, metrics=[]),
         )
         experiments.resumable_fine_tune(
-            learner, exported_model_path, epochs=120, freeze_epochs=5
+            learner,
+            exported_model_path,
+            epochs=epochs_override or 120,
+            freeze_epochs=freeze_epochs_override or 5,
         )
     elif model_version == 2:
         learner = experiments.create_reproducible_learner(
@@ -58,7 +69,10 @@ def train_app_model(
             learner_kwargs=dict(cbs=None, metrics=[]),
         )
         experiments.resumable_fine_tune(
-            learner, exported_model_path, epochs=200, freeze_epochs=10
+            learner,
+            exported_model_path,
+            epochs=epochs_override or 200,
+            freeze_epochs=freeze_epochs_override or 10,
         )
     else:
         raise ValueError(f"Unsupported {model_version=}")

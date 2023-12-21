@@ -24,8 +24,8 @@ _ABOUT_TEXT: Final[
 ] = """
     This is an _experimental_ web app for fish identification using underwater photos.
     It uses deep learning to find the species that best match the uploaded photos, out
-    of over two thousand species recorded on
-    [Reef Life Survey Method 1](https://reeflifesurvey.com/methods/) dives.
+    of over three thousand species recorded on
+    [Reef Life Survey](https://reeflifesurvey.com/) dives.
 
     Feedback is very welcome! Please send any comments via the
     [Reef Life Survey contact form](https://reeflifesurvey.com/contact/).
@@ -136,7 +136,7 @@ def _load_site_df(path_or_url: str | Path, species_df: pd.DataFrame) -> pd.DataF
     ]
     site_df["species_counts"] = site_df["species_counts"].map(
         lambda species_counts: {
-            species_df.loc[int(species_id)]["name"]: species_count
+            species_df.loc[species_id]["name"]: species_count
             for species_id, species_count in species_counts.items()
         }
     )
