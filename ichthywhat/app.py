@@ -136,7 +136,7 @@ def _load_site_df(path_or_url: str | Path, species_df: pd.DataFrame) -> pd.DataF
     ]
     site_df["species_counts"] = site_df["species_counts"].map(
         lambda species_counts: {
-            species_df.loc[int(species_id)]["name"]: species_count
+            species_df.loc[species_id]["name"]: species_count
             for species_id, species_count in species_counts.items()
         }
     )
